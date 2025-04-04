@@ -1,0 +1,456 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Data - Dell Interactive Prediction Model</title>
+  <link rel="stylesheet" href="styles.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background-color: #f4f4f4;
+    }
+    .dell-logo {
+      height: 40px;
+      width: auto;
+      margin-right: 15px;
+    }
+    .allocation-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 20px;
+      background: white;
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.05);
+    }
+    .allocation-table th, .allocation-table td {
+      border: 1px solid #d1e3ed;
+      padding: 12px;
+      text-align: center;
+    }
+    .allocation-table th {
+      background-color: #007db8;
+      color: white;
+      font-weight: 600;
+    }
+    input[type='number'] {
+      width: 70px;
+      padding: 5px;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+    }
+    .results {
+      margin-top: 30px;
+      padding: 20px;
+      background: #e8f0fe;
+      border-radius: 12px;
+      text-align: center;
+      font-size: 1.1em;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    }
+    .notice {
+      background-color: #fff7ed;
+      border-left: 5px solid #f97316;
+      padding: 16px;
+      margin-top: 20px;
+      border-radius: 10px;
+      color: #92400e;
+      font-size: 0.95em;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    }
+    .case-summary {
+      background-color: white;
+      border-radius: 12px;
+      padding: 20px;
+      margin-bottom: 20px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    }
+    .case-summary h3 {
+      color: #007db8;
+      margin-top: 0;
+    }
+    .week-selector {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+    .week-selector select {
+      padding: 8px 12px;
+      border-radius: 8px;
+      border: 1px solid #d1e3ed;
+      background-color: white;
+      font-size: 16px;
+    }
+  </style>
+</head>
+<body>
+  <div class="top-bar">
+    <div class="top-bar-left">
+      <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/4/48/Dell_Logo.svg/1024px-Dell_Logo.svg.png" alt="Dell Logo" class="dell-logo">
+      <span class="prediction-model">Interactive Prediction Model</span>
+    </div>
+    <div class="top-bar-right">
+      <span style="color: #333; font-weight: 500; margin-right: 15px;">Welcome, Team A</span>
+      <div class="icon-button">
+        <span class="help-icon">?</span>
+      </div>
+      <div class="icon-button">
+        <div class="account-icon"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="side-dashboard">
+    <div class="nav-item" onclick="window.location.href='index.html'">KPI's</div>
+    <div class="nav-item" onclick="window.location.href='emissions.html'">Emissions</div>
+    <div class="nav-item" onclick="window.location.href='suppliers.html'">Suppliers</div>
+    <div class="nav-item active" onclick="window.location.href='data.html'">Data</div>
+  </div>
+
+  <div class="main-content">
+    <h2 class="page-title">Dell Container Allocation Optimizer</h2>
+    
+    <div class="case-summary">
+      <h3>Case Study: LA Port Strike Risk Mitigation</h3>
+      <p>Dell recently learned that the dock workers at the Port of Los Angeles may strike sometime in the next
+      six weeks. Dell uses the LA port as an entry point for finished goods inventory (FGI) coming to the
+      Americas from China. The LA port is utilized by several different companies as their entry point for
+      products as well. In a typical week, 50 Dell containers of FGI come through the LA port on their way to a
+      hub in Nashville. If the workers do go on strike, our best information suggests the strike could last for up
+      to 8 weeks.</p>
+      
+      <p><strong>Problem Statement:</strong> What would you recommend Dell does in this situation?</p>
+      
+      <div style="margin-top: 15px;">
+        <strong>Key Information:</strong>
+        <ul>
+          <li>Dell ships 50 containers per week through LA Port</li>
+          <li>Strike may last up to 8 weeks</li>
+          <li>Alternative routes: Houston, Savannah, Prince Rupert, Air Freight</li>
+          <li>Each alternative has cost, time, and capacity implications</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="week-selector">
+      <label for="weekSelect" style="font-size: 16px; font-weight: 500; margin-right: 10px;">Planning for: </label>
+      <select id="weekSelect">
+        <option value="1">Week 1</option>
+        <option value="2">Week 2</option>
+        <option value="3">Week 3</option>
+        <option value="4">Week 4</option>
+        <option value="5">Week 5</option>
+        <option value="6">Week 6</option>
+        <option value="7">Week 7</option>
+        <option value="8">Week 8</option>
+      </select>
+    </div>
+
+    <table class="allocation-table">
+      <thead>
+        <tr>
+          <th>Port</th>
+          <th>Max Capacity</th>
+          <th>Cost/Container ($)</th>
+          <th>Lead Time (Days)</th>
+          <th>Containers Allocated</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Prince Rupert</td>
+          <td>35</td>
+          <td><input type="number" value="10000" id="cost_prince"></td>
+          <td><input type="number" value="45" id="time_prince"></td>
+          <td><input type="number" id="alloc_prince"></td>
+        </tr>
+        <tr>
+          <td>Houston</td>
+          <td>47</td>
+          <td><input type="number" value="10000" id="cost_houston"></td>
+          <td><input type="number" value="49" id="time_houston"></td>
+          <td><input type="number" id="alloc_houston"></td>
+        </tr>
+        <tr>
+          <td>Savannah</td>
+          <td>50</td>
+          <td><input type="number" value="10000" id="cost_savannah"></td>
+          <td><input type="number" value="56" id="time_savannah"></td>
+          <td><input type="number" id="alloc_savannah"></td>
+        </tr>
+        <tr>
+          <td>Air Freight</td>
+          <td>12</td>
+          <td><input type="number" value="25000" id="cost_air"></td>
+          <td><input type="number" value="7" id="time_air"></td>
+          <td><input type="number" id="alloc_air"></td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="results">
+      <p><strong>Total Weekly Cost:</strong> $<span id="total_cost">0</span></p>
+      <p><strong>Average Lead Time:</strong> <span id="avg_time">0</span> days</p>
+      <p><strong>Total Containers Allocated:</strong> <span id="total_alloc">0</span> / 50</p>
+      <p><strong>Weekly Revenue Risk:</strong> $<span id="revenue_risk">0</span></p>
+    </div>
+
+    <div class="notice">
+      <strong>Note:</strong> You can plan container shipments for all 8 weeks in advance. Use the week selector to customize allocations per week. All costs and time metrics will reflect only the currently selected week.
+    </div>
+    
+    <div style="text-align: center; margin-top: 20px;">
+      <button id="resetDataBtn" style="background-color: #007db8; color: white; padding: 10px 20px; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+        Reset to Original Data
+      </button>
+    </div>
+  </div>
+
+  <script>
+    // Global data store for all 8 weeks
+    const weekData = {};
+    
+    // Base data constants from case
+    const SYSTEM_CONSTANTS = {
+      CONTAINERS_PER_WEEK: 50,
+      UNITS_PER_CONTAINER: 1000, 
+      REVENUE_PER_UNIT: 2000,  // Estimated revenue per unit
+      MAX_STRIKE_WEEKS: 8,
+      PORT_CAPACITY: {
+        prince: 35,   // 70% of normal 50 containers
+        houston: 47,  // 95% of normal 50 containers
+        savannah: 50, // 100% of normal 50 containers
+        air: 12       // 25% of normal 50 containers
+      }
+    };
+
+    // Initialize default values for each week
+    for (let i = 1; i <= SYSTEM_CONSTANTS.MAX_STRIKE_WEEKS; i++) {
+      weekData[i] = {
+        alloc_prince: 0,
+        alloc_houston: 0,
+        alloc_savannah: 0,
+        alloc_air: 0
+      };
+    }
+
+    const inputs = ['alloc_prince', 'alloc_houston', 'alloc_savannah', 'alloc_air'];
+    const ports = ['prince', 'houston', 'savannah', 'air'];
+
+    function calculateRevenueRisk(totalAlloc) {
+      const shortfall = Math.max(0, SYSTEM_CONSTANTS.CONTAINERS_PER_WEEK - totalAlloc);
+      return shortfall * SYSTEM_CONSTANTS.UNITS_PER_CONTAINER * SYSTEM_CONSTANTS.REVENUE_PER_UNIT;
+    }
+
+    function updateTotals() {
+      let totalCost = 0, totalTime = 0, totalAlloc = 0;
+      let portCapacityExceeded = false;
+
+      ports.forEach(port => {
+        const cost = parseFloat(document.getElementById(`cost_${port}`).value);
+        const time = parseFloat(document.getElementById(`time_${port}`).value);
+        const alloc = parseInt(document.getElementById(`alloc_${port}`).value) || 0;
+        
+        // Validate allocation against port capacity
+        if (alloc > SYSTEM_CONSTANTS.PORT_CAPACITY[port]) {
+          alert(`Warning: ${port} allocation exceeds max capacity of ${SYSTEM_CONSTANTS.PORT_CAPACITY[port]} containers.`);
+          document.getElementById(`alloc_${port}`).value = SYSTEM_CONSTANTS.PORT_CAPACITY[port];
+          portCapacityExceeded = true;
+        }
+
+        totalCost += cost * alloc;
+        totalTime += time * alloc;
+        totalAlloc += alloc;
+
+        // Save per-week allocation
+        const week = document.getElementById('weekSelect').value;
+        weekData[week][`alloc_${port}`] = alloc;
+      });
+
+      // Calculate revenue at risk
+      const revenueRisk = calculateRevenueRisk(totalAlloc);
+
+      document.getElementById('total_cost').innerText = totalCost.toLocaleString();
+      document.getElementById('avg_time').innerText = totalAlloc > 0 ? (totalTime / totalAlloc).toFixed(1) : 0;
+      document.getElementById('total_alloc').innerText = totalAlloc;
+      document.getElementById('revenue_risk').innerText = revenueRisk.toLocaleString();
+      
+      // Update other charts and KPIs
+      updateGlobalData();
+      
+      if (portCapacityExceeded) {
+        // Recalculate after fixing values
+        updateTotals();
+      }
+    }
+
+    // Updates global data that can be used by other pages
+    function updateGlobalData() {
+      // Create a data object to store in localStorage
+      const globalData = {
+        weeklyData: weekData,
+        lastUpdated: new Date().toISOString(),
+        summary: {
+          totalContainers: 0,
+          totalCost: 0,
+          avgLeadTime: 0,
+          totalRevenueRisk: 0
+        }
+      };
+      
+      // Calculate summary data across all weeks
+      let grandTotalAlloc = 0;
+      let grandTotalCost = 0;
+      let grandTotalTimeWeighted = 0;
+      
+      for (let week = 1; week <= SYSTEM_CONSTANTS.MAX_STRIKE_WEEKS; week++) {
+        let weekTotalAlloc = 0;
+        let weekTotalCost = 0;
+        let weekTotalTime = 0;
+        
+        ports.forEach(port => {
+          const alloc = weekData[week][`alloc_${port}`] || 0;
+          const cost = parseFloat(document.getElementById(`cost_${port}`).value);
+          const time = parseFloat(document.getElementById(`time_${port}`).value);
+          
+          weekTotalAlloc += alloc;
+          weekTotalCost += cost * alloc;
+          weekTotalTime += time * alloc;
+        });
+        
+        grandTotalAlloc += weekTotalAlloc;
+        grandTotalCost += weekTotalCost;
+        if (weekTotalAlloc > 0) {
+          grandTotalTimeWeighted += (weekTotalTime / weekTotalAlloc) * weekTotalAlloc;
+        }
+        
+        // Calculate revenue risk for this week
+        const weekRevenueRisk = calculateRevenueRisk(weekTotalAlloc);
+        globalData.summary.totalRevenueRisk += weekRevenueRisk;
+      }
+      
+      globalData.summary.totalContainers = grandTotalAlloc;
+      globalData.summary.totalCost = grandTotalCost;
+      globalData.summary.avgLeadTime = grandTotalAlloc > 0 ? grandTotalTimeWeighted / grandTotalAlloc : 0;
+      
+      // Save to localStorage for other pages to access
+      localStorage.setItem('dellPortOptimizer', JSON.stringify(globalData));
+    }
+
+    // Update UI from stored data when switching weeks
+    function loadWeekData() {
+      const week = document.getElementById('weekSelect').value;
+      ports.forEach(port => {
+        document.getElementById(`alloc_${port}`).value = weekData[week][`alloc_${port}`];
+      });
+      updateTotals();
+    }
+
+    // Handle week change
+    document.getElementById('weekSelect').addEventListener('change', loadWeekData);
+    
+    // Handle input changes
+    document.querySelectorAll('input').forEach(input => {
+      input.addEventListener('input', updateTotals);
+    });
+
+    // Initialize first week on load
+    document.addEventListener('DOMContentLoaded', function() {
+      // Try to load previous data if available
+      const savedData = localStorage.getItem('dellPortOptimizer');
+      if (savedData) {
+        try {
+          const parsedData = JSON.parse(savedData);
+          if (parsedData.weeklyData) {
+            Object.assign(weekData, parsedData.weeklyData);
+          }
+        } catch (e) {
+          console.error('Error loading saved data:', e);
+        }
+      }
+      
+      loadWeekData();
+    });
+
+    // Add event listener for reset button
+    document.getElementById('resetDataBtn').addEventListener('click', function() {
+      if (confirm("Are you sure you want to reset to the original data? This will replace all your current allocations.")) {
+        // Original data from the template HTML
+        const originalData = {
+          1: {
+            alloc_prince: 15,
+            alloc_houston: 7,
+            alloc_savannah: 0,
+            alloc_air: 3,
+            special: true // week 1 has LA Port data
+          },
+          2: {
+            alloc_prince: 15,
+            alloc_houston: 7,
+            alloc_savannah: 0,
+            alloc_air: 3
+          },
+          3: {
+            alloc_prince: 15,
+            alloc_houston: 7,
+            alloc_savannah: 0,
+            alloc_air: 3
+          },
+          4: {
+            alloc_prince: 15,
+            alloc_houston: 7,
+            alloc_savannah: 0,
+            alloc_air: 3
+          },
+          5: {
+            alloc_prince: 15,
+            alloc_houston: 7,
+            alloc_savannah: 0,
+            alloc_air: 3
+          },
+          6: {
+            alloc_prince: 15,
+            alloc_houston: 7,
+            alloc_savannah: 0,
+            alloc_air: 3
+          },
+          7: {
+            alloc_prince: 15,
+            alloc_houston: 7,
+            alloc_savannah: 0,
+            alloc_air: 3
+          },
+          8: {
+            alloc_prince: 15,
+            alloc_houston: 7,
+            alloc_savannah: 0,
+            alloc_air: 3
+          }
+        };
+        
+        // Reset costs to original values
+        document.getElementById("cost_prince").value = 10000;
+        document.getElementById("cost_houston").value = 10000;
+        document.getElementById("cost_savannah").value = 10000;
+        document.getElementById("cost_air").value = 25000;
+        
+        // Reset lead times to original values
+        document.getElementById("time_prince").value = 45;
+        document.getElementById("time_houston").value = 49;
+        document.getElementById("time_savannah").value = 56;
+        document.getElementById("time_air").value = 7;
+        
+        // Reset the data for all weeks
+        Object.assign(weekData, originalData);
+        
+        // Load the current week data
+        loadWeekData();
+        
+        // Show success message
+        alert("Data has been reset to original values across all 8 weeks.");
+      }
+    });
+  </script>
+</body>
+</html> 

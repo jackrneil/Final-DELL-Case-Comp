@@ -1,0 +1,351 @@
+:root {
+    --dell-blue: #007db8;
+    --light-gray: #f4f4f4;
+    --white: #ffffff;
+    --dark-text: #333333;
+    --medium-gray: #666666;
+    --light-blue: #e8f0fe;
+    --chart-blue: #36A2EB;
+    --chart-light-blue: #a8d5ff;
+}
+
+body {
+    font-family: 'Segoe UI', Arial, sans-serif;
+    margin: 0;
+    padding: 0;
+    background-color: var(--light-gray);
+    color: var(--dark-text);
+}
+
+body.kpi-page {
+    overflow: hidden;
+}
+
+body:not(.kpi-page) .main-content {
+    overflow-y: auto;
+}
+
+.side-dashboard {
+    position: fixed;
+    left: 0;
+    top: 60px;
+    height: calc(100vh - 60px);
+    width: 220px;
+    background-color: var(--white);
+    box-shadow: 2px 0 5px rgba(0, 0, 0, 0.05);
+    padding-top: 20px;
+    z-index: 1000;
+}
+
+.top-bar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 60px;
+    background-color: var(--white);
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+    display: flex;
+    align-items: center;
+    padding: 0 20px;
+    z-index: 1001;
+}
+
+.top-bar-left {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.dell-logo {
+    height: 24px;
+    width: auto;
+}
+
+.prediction-model {
+    font-size: 18px;
+    font-weight: 500;
+    color: var(--dark-text);
+}
+
+.top-bar-right {
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.icon-button {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background-color: var(--light-gray);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+}
+
+.icon-button:hover {
+    background-color: #e0e0e0;
+}
+
+.account-icon {
+    width: 18px;
+    height: 18px;
+    background-color: var(--medium-gray);
+    border-radius: 50%;
+}
+
+.help-icon {
+    font-size: 16px;
+    color: var(--medium-gray);
+}
+
+.nav-item {
+    padding: 12px 20px;
+    margin: 2px 0;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    border-left: 3px solid transparent;
+    color: var(--dark-text);
+    font-weight: 400;
+    font-size: 14px;
+}
+
+.nav-item:hover {
+    background-color: #f0f0f0;
+    border-left: 3px solid var(--dell-blue);
+}
+
+.nav-item.active {
+    background-color: var(--light-blue);
+    border-left: 3px solid var(--dell-blue);
+    color: var(--dell-blue);
+}
+
+.main-content {
+    margin-left: 220px;
+    padding: 15px;
+    margin-top: 60px;
+    height: calc(100vh - 75px);
+    display: flex;
+    flex-direction: column;
+}
+
+.page-title {
+    font-size: 24px;
+    font-weight: 500;
+    margin-bottom: 20px;
+    color: var(--dark-text);
+}
+
+/* Dashboard layout */
+.dashboard-grid {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: 15px;
+    margin-bottom: 15px;
+}
+
+.kpi-page .dashboard-grid {
+    height: 50%;
+}
+
+.map-container {
+    background-color: var(--white);
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    overflow: hidden;
+    height: 100%;
+}
+
+.shipping-cost-chart {
+    background-color: var(--white);
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    padding: 15px;
+    margin-bottom: 15px;
+}
+
+.kpi-page .shipping-cost-chart {
+    height: 150px;
+}
+
+.bottom-row {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: 15px;
+}
+
+.kpi-page .bottom-row {
+    height: 150px;
+}
+
+.chart-title {
+    font-size: 16px;
+    font-weight: 500;
+    margin-bottom: 5px;
+    color: var(--dark-text);
+}
+
+.dashboard-container {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 15px;
+}
+
+.dashboard-tile {
+    background: var(--white);
+    padding: 15px;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    height: calc(100% - 30px);
+}
+
+.kpi-section {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    height: 100%;
+}
+
+.kpi-tile {
+    background-color: var(--white);
+    border-radius: 8px;
+    padding: 8px 15px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    flex: 1;
+}
+
+.kpi-title {
+    font-size: 13px;
+    color: var(--medium-gray);
+    margin-bottom: 3px;
+}
+
+.kpi-value {
+    font-size: 18px;
+    font-weight: 500;
+    color: var(--dark-text);
+}
+
+.kpi-delta {
+    display: flex;
+    align-items: center;
+    font-size: 11px;
+    margin-top: 2px;
+}
+
+.kpi-delta.positive {
+    color: #4CAF50;
+}
+
+.kpi-delta.negative {
+    color: #F44336;
+}
+
+.chart-container {
+    position: relative;
+    width: 100%;
+    height: calc(100% - 25px);
+}
+
+.news-section {
+    background-color: var(--white);
+    border-radius: 8px;
+    padding: 15px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    height: calc(100% - 30px);
+    overflow: hidden;
+}
+
+.news-title {
+    font-size: 16px;
+    font-weight: 500;
+    margin-bottom: 8px;
+    color: var(--dark-text);
+}
+
+.news-item {
+    padding: 6px 0;
+    border-bottom: 1px solid #eee;
+    font-size: 12px;
+}
+
+.news-item:last-child {
+    border-bottom: none;
+}
+
+#map-container {
+    height: 100%;
+    width: 100%;
+}
+
+.port-marker {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+}
+
+.port-capacity {
+    font-size: 12px;
+    font-weight: bold;
+    margin-left: 5px;
+}
+
+.port-congestion {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    display: inline-block;
+    margin-right: 3px;
+}
+
+.port-info {
+    padding: 5px;
+    background-color: rgba(255, 255, 255, 0.9);
+    border-radius: 4px;
+    font-size: 12px;
+}
+
+.donut-legend {
+    display: flex;
+    justify-content: center;
+    gap: 15px;
+    margin-top: 5px;
+}
+
+.legend-item {
+    display: flex;
+    align-items: center;
+    font-size: 12px;
+}
+
+.legend-color {
+    width: 12px;
+    height: 12px;
+    border-radius: 2px;
+    margin-right: 5px;
+}
+
+.day-slider {
+    width: 100%;
+    margin-top: 6px;
+    display: flex;
+}
+
+.day-marker {
+    width: 30px;
+    height: 20px;
+    text-align: center;
+    background-color: var(--dell-blue);
+    color: white;
+    border-radius: 4px;
+    font-size: 11px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+} 

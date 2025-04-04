@@ -1,0 +1,864 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Emissions - Dell Interactive Prediction Model</title>
+    <link rel="stylesheet" href="styles.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
+    <style>
+        /* Emissions page specific styles */
+        .emissions-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        
+        .emissions-title {
+            font-size: 24px;
+            font-weight: 500;
+            color: var(--dark-text);
+        }
+        
+        .kpi-row {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        
+        .kpi-card {
+            background-color: var(--white);
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+        
+        .kpi-value {
+            font-size: 32px;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: var(--dell-blue);
+        }
+        
+        .kpi-label {
+            font-size: 14px;
+            color: var(--medium-gray);
+        }
+
+        .chart-container {
+            background-color: var(--white);
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 0;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            height: 300px;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            width: 100%;
+            min-width: 0;
+        }
+
+        .chart-container h3 {
+            margin-top: 0;
+            margin-bottom: 10px;
+            font-size: 16px;
+        }
+
+        .chart-container canvas {
+            flex: 1;
+            max-height: calc(100% - 45px);
+            width: auto !important;
+            margin: 0 auto;
+            padding: 0;
+        }
+
+        /* Specific styles for each chart type */
+        .donut-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            height: 100%;
+        }
+
+        .donut-container canvas {
+            max-width: 85% !important;
+            margin-top: -10px;
+        }
+
+        .bar-container {
+            height: 100%;
+            width: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .bar-container canvas {
+            max-width: 100% !important;
+            max-height: 100% !important;
+            padding: 0 10px;
+        }
+
+        /* Add specific style for donut chart container */
+        #emissionsDonutChart {
+            aspect-ratio: 1;
+            max-width: 100%;
+            height: auto !important;
+        }
+
+        .chart-row {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
+            margin-bottom: 20px;
+            height: 300px;
+            width: 100%;
+        }
+
+        .emissions-table {
+            background-color: var(--white);
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            margin-bottom: 20px;
+            overflow: hidden;
+        }
+
+        .emissions-table-header {
+            padding: 15px;
+            border-bottom: 1px solid var(--light-gray);
+            font-weight: 500;
+        }
+
+        .sustainability-panel {
+            background-color: #f5f5f5;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .sustainability-panel h3 {
+            margin-top: 0;
+            margin-bottom: 15px;
+            font-size: 18px;
+            color: var(--dark-text);
+        }
+
+        .ai-forecast {
+            background-color: var(--white);
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 0;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            height: 300px;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            width: 100%;
+            min-width: 0; /* Prevents flex items from overflowing */
+        }
+
+        .ai-forecast-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .ai-forecast h3 {
+            margin: 0;
+            font-size: 16px;
+            color: var(--dark-text);
+        }
+
+        .refresh-button {
+            background-color: var(--dell-blue);
+            border: none;
+            border-radius: 24px;
+            padding: 8px 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: transform 0.3s ease;
+            gap: 8px;
+            color: white;
+            font-size: 14px;
+        }
+
+        .refresh-button:hover {
+            transform: scale(1.05);
+        }
+
+        .refresh-button svg {
+            width: 16px;
+            height: 16px;
+            fill: white;
+        }
+
+        .loading-spinner {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 200px;
+        }
+
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid var(--dell-blue);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .forecast-bubbles {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            overflow-y: auto;
+            width: 100%;
+        }
+
+        .forecast-bubble {
+            background-color: #f5f5f5;
+            border-radius: 8px;
+            padding: 12px;
+            font-size: 13px;
+            line-height: 1.4;
+            color: var(--dark-text);
+            opacity: 0;
+            transform: translateY(-20px);
+            animation: slideIn 0.5s ease forwards;
+            margin-right: 10px; /* Add right margin to prevent touching the wall */
+        }
+
+        .forecast-bubble:nth-child(1) {
+            animation-delay: 0s;
+        }
+
+        .forecast-bubble:nth-child(2) {
+            animation-delay: 0.2s;
+        }
+
+        .forecast-bubble:nth-child(3) {
+            animation-delay: 0.4s;
+        }
+
+        @keyframes slideIn {
+            0% {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+            100% {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes slideOut {
+            0% {
+                opacity: 1;
+                transform: translateY(0);
+            }
+            100% {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+        }
+
+        .forecast-bubble.sliding-out {
+            animation: slideOut 0.3s ease forwards;
+        }
+
+        .forecast-bubble:nth-child(1).sliding-out {
+            animation-delay: 0s;
+        }
+
+        .forecast-bubble:nth-child(2).sliding-out {
+            animation-delay: 0.1s;
+        }
+
+        .forecast-bubble:nth-child(3).sliding-out {
+            animation-delay: 0.2s;
+        }
+
+        .forecast-bubble .highlight {
+            color: var(--dell-blue);
+            font-weight: 500;
+        }
+
+        .carbon-badge {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 500;
+            color: white;
+        }
+
+        .carbon-badge.low {
+            background-color: #4CAF50;
+        }
+
+        .carbon-badge.moderate {
+            background-color: #FF9800;
+        }
+
+        .carbon-badge.high {
+            background-color: #F44336;
+        }
+
+        .action-bar {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .action-button {
+            padding: 8px 16px;
+            border-radius: 4px;
+            border: none;
+            background-color: var(--dell-blue);
+            color: white;
+            cursor: pointer;
+        }
+
+        .optimize-toggle {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f4f4f4;
+        }
+        .dell-logo {
+            height: 40px;
+            width: auto;
+            margin-right: 15px;
+        }
+    </style>
+</head>
+<body>
+    <div class="top-bar">
+        <div class="top-bar-left">
+            <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/4/48/Dell_Logo.svg/1024px-Dell_Logo.svg.png" alt="Dell Logo" class="dell-logo">
+            <span class="prediction-model">Interactive Prediction Model</span>
+        </div>
+        <div class="top-bar-right">
+            <span style="color: #333; font-weight: 500; margin-right: 15px;">Welcome, Team A</span>
+            <div class="icon-button">
+                <span class="help-icon">?</span>
+            </div>
+            <div class="icon-button">
+                <div class="account-icon"></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="side-dashboard">
+        <div class="nav-item" onclick="window.location.href='index.html'">KPI's</div>
+        <div class="nav-item active" onclick="window.location.href='emissions.html'">Emissions</div>
+        <div class="nav-item" onclick="window.location.href='suppliers.html'">Suppliers</div>
+        <div class="nav-item" onclick="window.location.href='data.html'">Data</div>
+    </div>
+
+    <div class="main-content">
+        <!-- Header -->
+        <div class="emissions-header">
+            <div class="emissions-title">Emissions</div>
+            <div class="action-bar">
+                <div class="optimize-toggle">
+                    <input type="checkbox" id="optimizeEmissions">
+                    <label for="optimizeEmissions">Optimize for emissions</label>
+                </div>
+                <button class="action-button" onclick="exportEmissionsReport()">Export Report</button>
+            </div>
+        </div>
+
+        <!-- Section 1: KPI Cards -->
+        <div class="kpi-row">
+            <div class="kpi-card">
+                <div class="kpi-value">1,270</div>
+                <div class="kpi-label">Total CO₂e (MT)</div>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-value">56%</div>
+                <div class="kpi-label">Water Emissions</div>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-value">19%</div>
+                <div class="kpi-label">Air Emissions</div>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-value">25%</div>
+                <div class="kpi-label">Ground Emissions</div>
+            </div>
+        </div>
+
+        <!-- Section 2 & 3: Charts -->
+        <div class="chart-row">
+            <div class="chart-container">
+                <h3>Mode Emissions Breakdown</h3>
+                <div class="donut-container">
+                    <canvas id="emissionsDonutChart"></canvas>
+                </div>
+            </div>
+            <div class="chart-container">
+                <h3>Weekly Emissions by Port</h3>
+                <div class="bar-container">
+                    <canvas id="weeklyEmissionsChart"></canvas>
+                </div>
+            </div>
+            <div class="ai-forecast">
+                <div class="ai-forecast-header">
+                    <h3>PowerEdge™ AI Eco Solutions</h3>
+                    <button class="refresh-button" onclick="refreshForecastSolutions()">
+                        <svg viewBox="0 0 24 24">
+                            <path d="M17.65 6.35C16.2 4.9 14.21 4 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08c-.82 2.33-3.04 4-5.65 4-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/>
+                        </svg>
+                        Recalculate
+                    </button>
+                </div>
+                <div class="forecast-bubbles" id="forecastMessages">
+                    <div class="forecast-bubble">
+                        Shifting <span class="highlight">5</span> containers to <span class="highlight">Prince Rupert</span> lowers emissions by <span class="highlight">310 kg CO₂e/week</span>
+                    </div>
+                    <div class="forecast-bubble">
+                        If air freight increases by <span class="highlight">10%</span>, total emissions rise by <span class="highlight">22%</span>
+                    </div>
+                    <div class="forecast-bubble">
+                        Optimizing ground routes through <span class="highlight">Tennessee</span> could reduce weekly emissions by <span class="highlight">5%</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Section 4: Route Emissions Table -->
+        <div class="emissions-table">
+            <div class="emissions-table-header">Route Emissions by Port</div>
+            <table style="width: 100%">
+                <thead>
+                    <tr>
+                        <th>Port</th>
+                        <th>Avg Weekly Containers</th>
+                        <th>% Air</th>
+                        <th>% Water</th>
+                        <th>% Ground</th>
+                        <th>Emissions/Week (MT)</th>
+                        <th>Carbon Rank</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>Prince Rupert</td>
+                        <td>12</td>
+                        <td>10%</td>
+                        <td>80%</td>
+                        <td>10%</td>
+                        <td>2.1</td>
+                        <td><span class="carbon-badge low">Low</span></td>
+                    </tr>
+                    <tr>
+                        <td>Houston</td>
+                        <td>15</td>
+                        <td>5%</td>
+                        <td>60%</td>
+                        <td>35%</td>
+                        <td>3.7</td>
+                        <td><span class="carbon-badge moderate">Moderate</span></td>
+                    </tr>
+                    <tr>
+                        <td>Savannah</td>
+                        <td>18</td>
+                        <td>0%</td>
+                        <td>75%</td>
+                        <td>25%</td>
+                        <td>4.1</td>
+                        <td><span class="carbon-badge high">High</span></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Section 5: Sustainability Panel -->
+        <div class="sustainability-panel">
+            <h3>Dell's Sustainability Commitment</h3>
+            <p>Dell is committed to reducing lifecycle emissions by reusing materials, optimizing ocean freight, and designing smarter products. Over 96.4% of Dell packaging is now recycled or renewable, and modular laptops are cutting e-waste worldwide.</p>
+            <a href="https://www.dell.com/en-us/lp/sustainable-design" target="_blank">Learn more about Dell's sustainable design →</a>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Initialize charts with data from data.html
+            initializeCharts();
+            
+            // Load saved data if available
+            const savedData = localStorage.getItem('dellPortOptimizer');
+            if (savedData) {
+                try {
+                    const parsedData = JSON.parse(savedData);
+                    updateDashboardWithData(parsedData);
+                } catch (e) {
+                    console.error('Error loading saved data:', e);
+                }
+            }
+        });
+
+        function initializeCharts() {
+            // Mode Emissions Breakdown Donut Chart
+            const donutCtx = document.getElementById('emissionsDonutChart').getContext('2d');
+            new Chart(donutCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Water', 'Air', 'Ground'],
+                    datasets: [{
+                        data: [56, 19, 25],
+                        backgroundColor: ['#2196F3', '#F44336', '#4CAF50']
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    aspectRatio: 1,
+                    layout: {
+                        padding: {
+                            top: 0,
+                            bottom: 10,
+                            left: 0,
+                            right: 0
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                padding: 8,
+                                font: {
+                                    size: 11,
+                                    family: 'Arial'
+                                },
+                                boxWidth: 10,
+                                generateLabels: function(chart) {
+                                    const data = chart.data;
+                                    if (data.labels.length && data.datasets.length) {
+                                        return data.labels.map((label, i) => {
+                                            const dataset = data.datasets[0];
+                                            const value = dataset.data[i];
+                                            return {
+                                                text: `${label} (${value}%)`,
+                                                fillStyle: dataset.backgroundColor[i],
+                                                hidden: isNaN(value) || value === 0,
+                                                lineCap: 'butt',
+                                                lineDash: [],
+                                                lineDashOffset: 0,
+                                                lineJoin: 'miter',
+                                                lineWidth: 1,
+                                                strokeStyle: dataset.backgroundColor[i],
+                                                pointStyle: 'rect',
+                                                rotation: 0
+                                            };
+                                        });
+                                    }
+                                    return [];
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+
+            // Weekly Emissions Chart
+            const weeklyCtx = document.getElementById('weeklyEmissionsChart').getContext('2d');
+            new Chart(weeklyCtx, {
+                type: 'bar',
+                data: {
+                    labels: ['Week 1', 'Week 2', 'Week 3', 'Week 4', 'Week 5', 'Week 6', 'Week 7', 'Week 8'],
+                    datasets: [
+                        {
+                            label: 'Air',
+                            data: [15, 18, 12, 14, 16, 19, 15, 17],
+                            backgroundColor: '#F44336'
+                        },
+                        {
+                            label: 'Water',
+                            data: [45, 42, 48, 46, 44, 41, 47, 43],
+                            backgroundColor: '#2196F3'
+                        },
+                        {
+                            label: 'Ground',
+                            data: [20, 22, 18, 21, 19, 23, 20, 22],
+                            backgroundColor: '#4CAF50'
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    layout: {
+                        padding: {
+                            top: 0,
+                            bottom: 15,
+                            left: 0,
+                            right: 0
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            align: 'center',
+                            labels: {
+                                padding: 8,
+                                font: {
+                                    size: 11,
+                                    family: 'Arial'
+                                },
+                                boxWidth: 10,
+                                usePointStyle: true,
+                                pointStyle: 'rect'
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            stacked: true,
+                            ticks: {
+                                font: {
+                                    size: 10,
+                                    family: 'Arial'
+                                }
+                            },
+                            grid: {
+                                display: false
+                            }
+                        },
+                        y: {
+                            stacked: true,
+                            title: {
+                                display: true,
+                                text: 'Emissions (MT CO₂e)',
+                                font: {
+                                    size: 11,
+                                    family: 'Arial'
+                                }
+                            },
+                            ticks: {
+                                font: {
+                                    size: 10,
+                                    family: 'Arial'
+                                }
+                            },
+                            grid: {
+                                color: '#f0f0f0'
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function updateDashboardWithData(data) {
+            // Update KPIs and charts with data from the optimizer
+            if (data.emissions) {
+                // Update KPI values
+                document.querySelectorAll('.kpi-value')[0].textContent = data.emissions.total.toFixed(0);
+                document.querySelectorAll('.kpi-value')[1].textContent = data.emissions.water.toFixed(0) + '%';
+                document.querySelectorAll('.kpi-value')[2].textContent = data.emissions.air.toFixed(0) + '%';
+                document.querySelectorAll('.kpi-value')[3].textContent = data.emissions.ground.toFixed(0) + '%';
+                
+                // Update charts
+                // Charts would be updated here with the new data
+            }
+        }
+
+        function exportEmissionsReport() {
+            // Create new jsPDF instance
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+
+            // Add Dell logo and title
+            doc.setFontSize(20);
+            doc.setTextColor(0, 118, 206); // Dell blue
+            doc.text('Dell Emissions Report', 20, 20);
+            
+            doc.setFontSize(12);
+            doc.setTextColor(100);
+            doc.text('Generated on: ' + new Date().toLocaleDateString(), 20, 30);
+
+            // Weekly emissions data
+            const weeklyData = {
+                air: [15, 18, 12, 14, 16, 19, 15, 17],
+                water: [45, 42, 48, 46, 44, 41, 47, 43],
+                ground: [20, 22, 18, 21, 19, 23, 20, 22]
+            };
+
+            // Calculate total emissions for each week
+            const tableData = Array.from({ length: 8 }, (_, i) => {
+                const air = weeklyData.air[i];
+                const water = weeklyData.water[i];
+                const ground = weeklyData.ground[i];
+                const total = air + water + ground;
+
+                // Calculate CO2e using emission factors
+                const airCO2e = air * 500; // 500 kg CO2e/container for air
+                const waterCO2e = water * 100; // 100 kg CO2e/container for water
+                const groundCO2e = ground * 50; // 50 kg CO2e/container for ground
+                const totalCO2e = (airCO2e + waterCO2e + groundCO2e) / 1000; // Convert to metric tons
+
+                return [
+                    `Week ${i + 1}`,
+                    air,
+                    water,
+                    ground,
+                    total,
+                    totalCO2e.toFixed(2)
+                ];
+            });
+
+            // Add the table
+            doc.autoTable({
+                head: [['Week', 'Air Containers', 'Water Containers', 'Ground Containers', 'Total Containers', 'Total CO₂e (MT)']],
+                body: tableData,
+                startY: 40,
+                theme: 'grid',
+                styles: {
+                    fontSize: 10,
+                    cellPadding: 3,
+                },
+                headStyles: {
+                    fillColor: [0, 118, 206],
+                    textColor: 255,
+                    fontSize: 10,
+                    fontStyle: 'bold',
+                },
+                alternateRowStyles: {
+                    fillColor: [245, 245, 245]
+                }
+            });
+
+            // Add summary section
+            const totalContainers = tableData.reduce((sum, row) => sum + row[4], 0);
+            const totalEmissions = tableData.reduce((sum, row) => sum + parseFloat(row[5]), 0);
+            
+            const summaryY = doc.previousAutoTable.finalY + 20;
+            doc.setFontSize(12);
+            doc.setTextColor(0);
+            doc.text('Summary:', 20, summaryY);
+            doc.text(`Total Containers: ${totalContainers}`, 20, summaryY + 10);
+            doc.text(`Total CO₂e: ${totalEmissions.toFixed(2)} MT`, 20, summaryY + 20);
+
+            // Add footer
+            doc.setFontSize(8);
+            doc.setTextColor(100);
+            const pageHeight = doc.internal.pageSize.height;
+            doc.text('Dell Confidential - For Internal Use Only', 20, pageHeight - 10);
+
+            // Download the PDF
+            doc.save('Dell_Emissions_Report.pdf');
+        }
+
+        // Listen for changes in the optimizer data
+        window.addEventListener('storage', function(e) {
+            if (e.key === 'dellPortOptimizer') {
+                try {
+                    const data = JSON.parse(e.newValue);
+                    updateDashboardWithData(data);
+                } catch (e) {
+                    console.error('Error processing optimizer data:', e);
+                }
+            }
+        });
+
+        // Add this to your JavaScript section
+        const forecastSolutions = [
+            'Shifting <span class="highlight">5</span> containers to <span class="highlight">Prince Rupert</span> lowers emissions by <span class="highlight">310 kg CO₂e/week</span>',
+            'If air freight increases by <span class="highlight">10%</span>, total emissions rise by <span class="highlight">22%</span>',
+            'Optimizing ground routes through <span class="highlight">Tennessee</span> could reduce weekly emissions by <span class="highlight">5%</span>',
+            'Reducing air freight by <span class="highlight">4</span> containers cuts <span class="highlight">1.2 metric tons CO₂e/week</span>',
+            'Switching <span class="highlight">8</span> containers from <span class="highlight">Savannah</span> to <span class="highlight">Prince Rupert</span> lowers emissions by <span class="highlight">420 kg CO₂e/week</span>',
+            'Consolidating containers from <span class="highlight">Houston</span> to fewer truckloads saves <span class="highlight">3%</span> emissions',
+            'Using <span class="highlight">100%</span> ocean freight for Week <span class="highlight">5</span> reduces emissions by <span class="highlight">18%</span>',
+            'Avoiding <span class="highlight">Savannah</span> in Week <span class="highlight">6</span> avoids <span class="highlight">510 kg CO₂e</span> due to congestion delays',
+            'Grouping <span class="highlight">10</span> ground shipments via intermodal rail cuts <span class="highlight">22%</span> ground emissions',
+            'Increasing <span class="highlight">Prince Rupert</span> share by <span class="highlight">20%</span> reduces total CO₂e by <span class="highlight">740 kg/month</span>',
+            'Front-loading <span class="highlight">15</span> containers in Week <span class="highlight">1</span> avoids <span class="highlight">900 kg CO₂e</span> peak-time freight use',
+            'Holding air freight below <span class="highlight">12%</span> total volume keeps CO₂e growth under <span class="highlight">5%</span>',
+            'Switching <span class="highlight">5</span> air containers to <span class="highlight">Houston</span> cuts emissions by <span class="highlight">2.1 metric tons</span>',
+            'Replacing <span class="highlight">Savannah</span> truck routes with rail hub transfers cuts <span class="highlight">14%</span> emissions',
+            'Staggering shipments to <span class="highlight">Savannah</span> during off-peak reduces idle truck emissions by <span class="highlight">300 kg/week</span>',
+            'Using biofuel trucks for final-mile delivery in <span class="highlight">Tennessee</span> lowers ground CO₂e <span class="highlight">7%</span>',
+            'Reducing Week <span class="highlight">4</span> total shipments by <span class="highlight">10</span> containers drops emissions <span class="highlight">1.6 metric tons</span>',
+            'Prioritizing lower-emission packaging options saves <span class="highlight">60 kg CO₂e/container</span>',
+            'Avoiding partial loads in <span class="highlight">Prince Rupert</span> reduces weekly emissions by <span class="highlight">8%</span>',
+            'Holding <span class="highlight">20%</span> of containers during storm week avoids emergency air freight spikes',
+            'Adding carbon credits to offset air shipments neutralizes <span class="highlight">5.3 metric tons CO₂e</span>',
+            'Combining ocean shipments from <span class="highlight">Shanghai</span> to <span class="highlight">Houston</span> on one carrier cuts <span class="highlight">12%</span> CO₂e',
+            'Switching <span class="highlight">Savannah\'s</span> drayage partner to electric fleet cuts <span class="highlight">310 kg CO₂e/month</span>',
+            'Avoiding overnight delivery windows cuts expedited air emissions by <span class="highlight">18%</span>',
+            'Batching shipments into 40-ft containers lowers CO₂e per unit by <span class="highlight">11%</span>',
+            'Delaying <span class="highlight">6</span> containers from Week <span class="highlight">3</span> to Week <span class="highlight">5</span> avoids high-emission reroutes'
+        ];
+
+        function getRandomSolutions(count) {
+            const shuffled = [...forecastSolutions].sort(() => 0.5 - Math.random());
+            return shuffled.slice(0, count);
+        }
+
+        function refreshForecastSolutions() {
+            const forecastContainer = document.getElementById('forecastMessages');
+            const refreshButton = document.querySelector('.refresh-button');
+            const existingBubbles = forecastContainer.querySelectorAll('.forecast-bubble');
+            
+            // Disable button during "calculation"
+            refreshButton.disabled = true;
+            refreshButton.style.opacity = '0.7';
+
+            // Add sliding out animation to existing bubbles
+            existingBubbles.forEach(bubble => {
+                bubble.classList.add('sliding-out');
+            });
+
+            // Wait for slide out animation
+            setTimeout(() => {
+                // Show loading spinner
+                forecastContainer.innerHTML = `
+                    <div class="loading-spinner">
+                        <div class="spinner"></div>
+                    </div>
+                `;
+
+                // Wait for 2 seconds before showing new solutions
+                setTimeout(() => {
+                    const solutions = getRandomSolutions(3);
+                    
+                    forecastContainer.innerHTML = solutions.map(solution => 
+                        `<div class="forecast-bubble">${solution}</div>`
+                    ).join('');
+
+                    // Reset button
+                    refreshButton.disabled = false;
+                    refreshButton.style.opacity = '1';
+                }, 2000);
+            }, 300); // Wait for slide out animation to complete
+        }
+    </script>
+</body>
+</html> 

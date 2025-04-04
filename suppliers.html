@@ -1,0 +1,789 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Suppliers - Dell Interactive Prediction Model</title>
+    <link rel="stylesheet" href="styles.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f4f4f4;
+        }
+        .dell-logo {
+            height: 40px;
+            width: auto;
+            margin-right: 15px;
+        }
+        .suppliers-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        
+        .suppliers-title {
+            font-size: 24px;
+            font-weight: 500;
+            color: var(--dark-text);
+        }
+        
+        .filter-actions {
+            display: flex;
+            gap: 10px;
+        }
+        
+        .filter-button {
+            display: flex;
+            align-items: center;
+            padding: 8px 15px;
+            background-color: var(--light-gray);
+            border-radius: 4px;
+            border: none;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        
+        .more-button {
+            width: 32px;
+            height: 32px;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background-color: var(--light-gray);
+            cursor: pointer;
+        }
+        
+        .kpi-row {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        
+        .kpi-card {
+            background-color: var(--white);
+            border-radius: 8px;
+            padding: 15px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .kpi-icon {
+            color: var(--dell-blue);
+            font-size: 28px;
+            margin-bottom: 10px;
+        }
+        
+        .kpi-value-large {
+            font-size: 28px;
+            font-weight: 600;
+            color: var(--dark-text);
+            margin-bottom: 5px;
+        }
+        
+        .kpi-label {
+            font-size: 13px;
+            color: var(--medium-gray);
+        }
+        
+        .supplier-table {
+            background-color: var(--white);
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            margin-bottom: 20px;
+            overflow: hidden;
+        }
+        
+        .supplier-table-header {
+            padding: 15px;
+            border-bottom: 1px solid var(--light-gray);
+            font-weight: 500;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        
+        th, td {
+            padding: 12px 15px;
+            text-align: left;
+            border-bottom: 1px solid var(--light-gray);
+        }
+        
+        th {
+            background-color: #f9f9f9;
+            font-weight: 500;
+            color: var(--medium-gray);
+            font-size: 13px;
+        }
+        
+        tr:hover {
+            background-color: #f5f9ff;
+        }
+        
+        .status-high {
+            color: #F44336;
+            font-weight: 500;
+        }
+        
+        .status-moderate {
+            color: #FF9800;
+            font-weight: 500;
+        }
+        
+        .status-low {
+            color: #4CAF50;
+            font-weight: 500;
+        }
+        
+        .map-risk-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        
+        .map-container {
+            background-color: var(--white);
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            overflow: hidden;
+            height: 300px;
+        }
+        
+        .risk-forecast {
+            background-color: var(--white);
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            padding: 15px;
+        }
+        
+        .risk-chart-container {
+            height: 250px;
+        }
+        
+        .insights-container {
+            background-color: var(--white);
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+        
+        .insight-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            padding: 10px 0;
+            border-bottom: 1px solid var(--light-gray);
+        }
+        
+        .insight-item:last-child {
+            border-bottom: none;
+        }
+        
+        .insight-icon {
+            color: var(--dell-blue);
+            background-color: #e8f0fe;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+        
+        .insight-content {
+            flex: 1;
+        }
+        
+        .insight-title {
+            font-weight: 500;
+            margin-bottom: 5px;
+        }
+        
+        .insight-description {
+            font-size: 13px;
+            color: var(--medium-gray);
+        }
+        
+        .supplier-badge {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background-color: #e0e0e0;
+            margin-right: 5px;
+            text-align: center;
+            line-height: 20px;
+            font-size: 12px;
+            color: white;
+        }
+        
+        .supplier-badge.success {
+            background-color: #4CAF50;
+        }
+        
+        .supplier-badge.warning {
+            background-color: #FF9800;
+        }
+        
+        .supplier-badge.danger {
+            background-color: #F44336;
+        }
+        
+        .supplier-name {
+            display: flex;
+            align-items: center;
+        }
+        
+        /* Tooltip for the supplier map */
+        .map-tooltip {
+            background-color: white;
+            border-radius: 4px;
+            padding: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            max-width: 200px;
+        }
+        
+        .map-tooltip-title {
+            font-weight: 500;
+            margin-bottom: 5px;
+        }
+        
+        .map-tooltip-content {
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <div class="top-bar">
+        <div class="top-bar-left">
+            <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/4/48/Dell_Logo.svg/1024px-Dell_Logo.svg.png" alt="Dell Logo" class="dell-logo">
+            <span class="prediction-model">Interactive Prediction Model</span>
+        </div>
+        <div class="top-bar-right">
+            <span style="color: #333; font-weight: 500; margin-right: 15px;">Welcome, Team A</span>
+            <div class="icon-button">
+                <span class="help-icon">?</span>
+            </div>
+            <div class="icon-button">
+                <div class="account-icon"></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="side-dashboard">
+        <div class="nav-item" onclick="window.location.href='index.html'">KPI's</div>
+        <div class="nav-item" onclick="window.location.href='emissions.html'">Emissions</div>
+        <div class="nav-item active" onclick="window.location.href='suppliers.html'">Suppliers</div>
+        <div class="nav-item" onclick="window.location.href='data.html'">Data</div>
+    </div>
+
+    <div class="main-content">
+        <!-- Header with title and filters -->
+        <div class="suppliers-header">
+            <div class="suppliers-title">Suppliers</div>
+            <div class="filter-actions">
+                <button class="filter-button">
+                    <span>Filter</span>
+                </button>
+                <div class="more-button">
+                    <span>⋮</span>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Row 1: Top-Level KPI Cards -->
+        <div class="kpi-row">
+            <div class="kpi-card">
+                <div class="kpi-icon">🚚</div>
+                <div class="kpi-value-large">86%</div>
+                <div class="kpi-label">On-Time Delivery Rate</div>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-icon">⏱️</div>
+                <div class="kpi-value-large">22</div>
+                <div class="kpi-label">Average Lead Time</div>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-icon">👥</div>
+                <div class="kpi-value-large">58</div>
+                <div class="kpi-label">Active Suppliers</div>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-icon">%</div>
+                <div class="kpi-value-large">4.1%</div>
+                <div class="kpi-label">Backorder Ratio</div>
+            </div>
+        </div>
+        
+        <!-- Row 2: Supplier Status Table -->
+        <div class="supplier-table">
+            <div class="supplier-table-header">Supplier Status</div>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Supplier</th>
+                        <th>Location</th>
+                        <th>Avg. Lead Time</th>
+                        <th>On-Time %</th>
+                        <th>Shipments This Week</th>
+                        <th>Compliance</th>
+                        <th>Risk Level</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>
+                            <div class="supplier-name">
+                                <span class="supplier-badge danger">!</span>
+                                Supplier A
+                            </div>
+                        </td>
+                        <td>Shenzhen</td>
+                        <td>23 d</td>
+                        <td>68%</td>
+                        <td>4</td>
+                        <td>72</td>
+                        <td class="status-high">High</td>
+                    </tr>
+                    <tr>
+                        <td>
+                            <div class="supplier-name">
+                                <span class="supplier-badge success">✓</span>
+                                Supplier B
+                            </div>
+                        </td>
+                        <td>Manila</td>
+                        <td>17 d</td>
+                        <td>95%</td>
+                        <td>3</td>
+                        <td>88</td>
+                        <td class="status-low">Low</td>
+                    </tr>
+                    <tr>
+                        <td>
+                            <div class="supplier-name">
+                                <span class="supplier-badge success">✓</span>
+                                Supplier C
+                            </div>
+                        </td>
+                        <td>Vietnam</td>
+                        <td>25 d</td>
+                        <td>90%</td>
+                        <td>5</td>
+                        <td>78</td>
+                        <td class="status-moderate">Moderate</td>
+                    </tr>
+                    <tr>
+                        <td>
+                            <div class="supplier-name">
+                                <span class="supplier-badge success">✓</span>
+                                Supplier D
+                            </div>
+                        </td>
+                        <td>Austin</td>
+                        <td>19 d</td>
+                        <td>98%</td>
+                        <td>2</td>
+                        <td>93</td>
+                        <td class="status-low">Low</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        
+        <!-- Row 3: Map and Risk Forecast -->
+        <div class="map-risk-row">
+            <div class="map-container">
+                <div style="padding: 15px;">
+                    <h3 style="margin-top: 0; margin-bottom: 10px; font-size: 16px;">World Map</h3>
+                    <div id="supplier-map" style="height: 250px;"></div>
+                </div>
+            </div>
+            <div class="risk-forecast">
+                <h3 style="margin-top: 0; margin-bottom: 10px; font-size: 16px;">Supplier Risk Forecast</h3>
+                <div class="risk-chart-container">
+                    <canvas id="riskForecastChart"></canvas>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Row 4: Smart Insights -->
+        <div class="insights-container">
+            <div class="supplier-table-header">Supplier Performance Details</div>
+            <div style="overflow-x: auto;">
+                <table style="min-width: 1000px;">
+                    <thead>
+                        <tr>
+                            <th>Supplier</th>
+                            <th>Tier Level</th>
+                            <th>
+                                <div style="display: flex; align-items: center; gap: 5px;">
+                                    <span style="font-size: 14px;">🚚</span>
+                                    <span>On-Time %</span>
+                                </div>
+                            </th>
+                            <th>
+                                <div style="display: flex; align-items: center; gap: 5px;">
+                                    <span style="font-size: 14px;">⏱️</span>
+                                    <span>Lead Time</span>
+                                </div>
+                            </th>
+                            <th>
+                                <div style="display: flex; align-items: center; gap: 5px;">
+                                    <span style="font-size: 14px;">📦</span>
+                                    <span>Fill Rate %</span>
+                                </div>
+                            </th>
+                            <th>
+                                <div style="display: flex; align-items: center; gap: 5px;">
+                                    <span style="font-size: 14px;">⚠️</span>
+                                    <span>Backorder %</span>
+                                </div>
+                            </th>
+                            <th>
+                                <div style="display: flex; align-items: center; gap: 5px;">
+                                    <span style="font-size: 14px;">🔍</span>
+                                    <span>Defect Rate %</span>
+                                </div>
+                            </th>
+                            <th>
+                                <div style="display: flex; align-items: center; gap: 5px;">
+                                    <span style="font-size: 14px;">✅</span>
+                                    <span>PO Accept (hrs)</span>
+                                </div>
+                            </th>
+                            <th>Service Level</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>
+                                <div class="supplier-name">
+                                    <span class="supplier-badge danger">!</span>
+                                    Supplier A
+                                </div>
+                            </td>
+                            <td>Tier 1</td>
+                            <td style="color: #F44336; font-weight: 500;">68% ↓</td>
+                            <td style="color: #F44336; font-weight: 500;">23d</td>
+                            <td style="color: #FF9800; font-weight: 500;">82%</td>
+                            <td style="color: #F44336; font-weight: 500;">12%</td>
+                            <td style="color: #FF9800; font-weight: 500;">3.2%</td>
+                            <td style="color: #FF9800; font-weight: 500;">18</td>
+                            <td>
+                                <div style="display: flex; align-items: center; gap: 4px;">
+                                    <span style="display: inline-block; width: 12px; height: 12px; border-radius: 50%; background-color: #F44336;"></span>
+                                    <span style="font-weight: 500;">At Risk</span>
+                                </div>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <div class="supplier-name">
+                                    <span class="supplier-badge success">✓</span>
+                                    Supplier B
+                                </div>
+                            </td>
+                            <td>Tier 1</td>
+                            <td style="color: #4CAF50; font-weight: 500;">95% ↑</td>
+                            <td style="color: #4CAF50; font-weight: 500;">17d</td>
+                            <td style="color: #4CAF50; font-weight: 500;">98%</td>
+                            <td style="color: #4CAF50; font-weight: 500;">2%</td>
+                            <td style="color: #4CAF50; font-weight: 500;">0.8%</td>
+                            <td style="color: #4CAF50; font-weight: 500;">6</td>
+                            <td>
+                                <div style="display: flex; align-items: center; gap: 4px;">
+                                    <span style="display: inline-block; width: 12px; height: 12px; border-radius: 50%; background-color: #4CAF50;"></span>
+                                    <span style="font-weight: 500;">Excellent</span>
+                                </div>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <div class="supplier-name">
+                                    <span class="supplier-badge success">✓</span>
+                                    Supplier C
+                                </div>
+                            </td>
+                            <td>Tier 2</td>
+                            <td style="color: #4CAF50; font-weight: 500;">90% ↑</td>
+                            <td style="color: #FF9800; font-weight: 500;">25d</td>
+                            <td style="color: #4CAF50; font-weight: 500;">96%</td>
+                            <td style="color: #4CAF50; font-weight: 500;">4%</td>
+                            <td style="color: #4CAF50; font-weight: 500;">1.5%</td>
+                            <td style="color: #4CAF50; font-weight: 500;">8</td>
+                            <td>
+                                <div style="display: flex; align-items: center; gap: 4px;">
+                                    <span style="display: inline-block; width: 12px; height: 12px; border-radius: 50%; background-color: #FF9800;"></span>
+                                    <span style="font-weight: 500;">Good</span>
+                                </div>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <div class="supplier-name">
+                                    <span class="supplier-badge success">✓</span>
+                                    Supplier D
+                                </div>
+                            </td>
+                            <td>Tier 1</td>
+                            <td style="color: #4CAF50; font-weight: 500;">98% ↑</td>
+                            <td style="color: #4CAF50; font-weight: 500;">19d</td>
+                            <td style="color: #4CAF50; font-weight: 500;">99%</td>
+                            <td style="color: #4CAF50; font-weight: 500;">1%</td>
+                            <td style="color: #4CAF50; font-weight: 500;">0.5%</td>
+                            <td style="color: #4CAF50; font-weight: 500;">4</td>
+                            <td>
+                                <div style="display: flex; align-items: center; gap: 4px;">
+                                    <span style="display: inline-block; width: 12px; height: 12px; border-radius: 50%; background-color: #4CAF50;"></span>
+                                    <span style="font-weight: 500;">Excellent</span>
+                                </div>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            <div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid var(--light-gray);">
+                <div style="font-weight: 500; margin-bottom: 10px;">PowerEdge™ AI Recommendation:</div>
+                <div style="display: flex; align-items: flex-start; gap: 10px;">
+                    <div class="insight-icon">💡</div>
+                    <div>
+                        <strong>Supplier A requires immediate attention.</strong> Consider re-routing critical orders to Supplier B or D to mitigate supply chain risk. Supplier A on-time delivery has fallen below threshold (68% vs 85% target).
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Initialize the supplier map
+        document.addEventListener('DOMContentLoaded', function() {
+            // Create the map - centered on Eastern Asia with appropriate zoom
+            const map = L.map('supplier-map').setView([22, 110], 4);
+            
+            // Add the tile layer (using OpenStreetMap)
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+                maxZoom: 18
+            }).addTo(map);
+            
+            // Define supplier locations with comprehensive data
+            const suppliers = [
+                { 
+                    name: "Supplier A", 
+                    location: [22.5431, 114.0579], 
+                    risk: "High", 
+                    tier: "Tier 1",
+                    onTime: "68% ↓",
+                    leadTime: "23d",
+                    fillRate: "82%",
+                    backorderRate: "12%",
+                    defectRate: "3.2%",
+                    poAccept: "18 hrs",
+                    serviceLevel: "At Risk",
+                    issue: "Bad weather",
+                    eta: "Delayed 3 days",
+                    status: "danger"
+                },
+                { 
+                    name: "Supplier B", 
+                    location: [14.5995, 120.9842], 
+                    risk: "Low",
+                    tier: "Tier 1",
+                    onTime: "95% ↑",
+                    leadTime: "17d",
+                    fillRate: "98%",
+                    backorderRate: "2%",
+                    defectRate: "0.8%",
+                    poAccept: "6 hrs",
+                    serviceLevel: "Excellent",
+                    issue: "None", 
+                    eta: "On schedule",
+                    status: "success"
+                },
+                { 
+                    name: "Supplier C", 
+                    location: [21.0278, 105.8342], 
+                    risk: "Moderate",
+                    tier: "Tier 2",
+                    onTime: "90% ↑",
+                    leadTime: "25d",
+                    fillRate: "96%",
+                    backorderRate: "4%",
+                    defectRate: "1.5%",
+                    poAccept: "8 hrs",
+                    serviceLevel: "Good",
+                    issue: "Port congestion", 
+                    eta: "Delayed by 2 days",
+                    status: "warning"
+                },
+                { 
+                    name: "Supplier D", 
+                    location: [30.2672, -97.7431], 
+                    risk: "Low",
+                    tier: "Tier 1",
+                    onTime: "98% ↑",
+                    leadTime: "19d",
+                    fillRate: "99%",
+                    backorderRate: "1%",
+                    defectRate: "0.5%",
+                    poAccept: "4 hrs",
+                    serviceLevel: "Excellent",
+                    issue: "None", 
+                    eta: "On schedule",
+                    status: "success"
+                }
+            ];
+            
+            // Add markers for each supplier
+            suppliers.forEach(supplier => {
+                const markerColor = supplier.risk === "High" ? "#F44336" : 
+                                   supplier.risk === "Moderate" ? "#FF9800" : "#4CAF50";
+                
+                // Create custom marker
+                const marker = L.circleMarker(supplier.location, {
+                    radius: 8,
+                    fillColor: markerColor,
+                    color: "#fff",
+                    weight: 1,
+                    opacity: 1,
+                    fillOpacity: 0.8
+                }).addTo(map);
+                
+                // Create an enhanced tooltip with all supplier metrics
+                const tooltipContent = `
+                    <div class="map-tooltip" style="min-width: 250px;">
+                        <div class="map-tooltip-title" style="font-size: 16px; margin-bottom: 8px; color: #333; border-bottom: 1px solid #eee; padding-bottom: 5px;">
+                            <span style="display: inline-block; width: 12px; height: 12px; border-radius: 50%; background-color: ${markerColor}; margin-right: 5px;"></span>
+                            ${supplier.name} (${supplier.tier})
+                        </div>
+                        <div class="map-tooltip-content" style="font-size: 12px; line-height: 1.5; color: #555;">
+                            <table style="width: 100%; border-collapse: collapse;">
+                                <tr>
+                                    <td style="padding: 3px 0; font-weight: bold;">On-Time:</td>
+                                    <td style="padding: 3px 0; color: ${supplier.onTime.includes('↓') ? '#F44336' : '#4CAF50'};">${supplier.onTime}</td>
+                                </tr>
+                                <tr>
+                                    <td style="padding: 3px 0; font-weight: bold;">Lead Time:</td>
+                                    <td style="padding: 3px 0;">${supplier.leadTime}</td>
+                                </tr>
+                                <tr>
+                                    <td style="padding: 3px 0; font-weight: bold;">Fill Rate:</td>
+                                    <td style="padding: 3px 0;">${supplier.fillRate}</td>
+                                </tr>
+                                <tr>
+                                    <td style="padding: 3px 0; font-weight: bold;">Backorder:</td>
+                                    <td style="padding: 3px 0;">${supplier.backorderRate}</td>
+                                </tr>
+                                <tr>
+                                    <td style="padding: 3px 0; font-weight: bold;">Defect Rate:</td>
+                                    <td style="padding: 3px 0;">${supplier.defectRate}</td>
+                                </tr>
+                                <tr>
+                                    <td style="padding: 3px 0; font-weight: bold;">PO Accept:</td>
+                                    <td style="padding: 3px 0;">${supplier.poAccept}</td>
+                                </tr>
+                                <tr>
+                                    <td style="padding: 3px 0; font-weight: bold;">Risk Level:</td>
+                                    <td style="padding: 3px 0; font-weight: bold; color: ${markerColor};">${supplier.risk}</td>
+                                </tr>
+                                <tr>
+                                    <td style="padding: 3px 0; font-weight: bold;">Service Level:</td>
+                                    <td style="padding: 3px 0; font-weight: bold;">${supplier.serviceLevel}</td>
+                                </tr>
+                                <tr>
+                                    <td style="padding: 3px 0; font-weight: bold;">Status:</td>
+                                    <td style="padding: 3px 0;">${supplier.issue}</td>
+                                </tr>
+                                <tr>
+                                    <td style="padding: 3px 0; font-weight: bold;">ETA:</td>
+                                    <td style="padding: 3px 0;">${supplier.eta}</td>
+                                </tr>
+                            </table>
+                        </div>
+                    </div>
+                `;
+                
+                // Bind the tooltip to the marker
+                marker.bindTooltip(tooltipContent, { 
+                    className: 'map-tooltip',
+                    direction: 'top',
+                    offset: [0, -10],
+                    opacity: 1
+                });
+                
+                // Add clickable functionality
+                marker.on('click', function() {
+                    // You could add additional functionality here if desired
+                    // For example, highlight the corresponding row in the supplier table
+                });
+            });
+            
+            // Initialize the Risk Forecast Chart
+            const ctx = document.getElementById('riskForecastChart').getContext('2d');
+            const riskForecastChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: ['Week 1', 'Week 2', 'Week 3', 'Week 4'],
+                    datasets: [
+                        {
+                            label: 'Supplier A',
+                            data: [1, 1.5, 2, 3],
+                            borderColor: '#F44336',
+                            tension: 0.1,
+                            fill: false
+                        },
+                        {
+                            label: 'Other Suppliers',
+                            data: [0.5, 0.7, 0.8, 0.6],
+                            borderColor: '#BDBDBD',
+                            tension: 0.1,
+                            fill: false
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            title: {
+                                display: true,
+                                text: 'Risk Score'
+                            }
+                        }
+                    }
+                }
+            });
+            
+            // Try to load data from the Data page if available
+            const savedData = localStorage.getItem('dellPortOptimizer');
+            if (savedData) {
+                try {
+                    const parsedData = JSON.parse(savedData);
+                    if (parsedData.summary) {
+                        // Use data to enhance visualizations
+                        console.log("Data from optimizer found:", parsedData);
+                    }
+                } catch (e) {
+                    console.error('Error loading saved data:', e);
+                }
+            }
+        });
+    </script>
+</body>
+</html> 

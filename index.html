@@ -1,0 +1,2159 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dell Interactive Prediction Model</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/leaflet@1.7.1/dist/leaflet.js"></script>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.7.1/dist/leaflet.css" />
+  <link rel="stylesheet" href="styles.css">
+  <style>
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      margin: 0;
+      padding: 0;
+      background-color: #f4f4f4;
+    }
+    .dell-logo {
+      height: 40px;
+      width: auto;
+      margin-right: 15px;
+    }
+    h1, h2 { text-align: center; }
+    .dashboard-container {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 20px;
+      margin-top: 20px;
+    }
+    .dashboard-grid {
+      width: 100%;
+      padding: 20px 20px 0 20px;
+    }
+    .map-container {
+      width: 100%;
+      height: 54vh;
+      padding: 0;
+      background: white;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      border-radius: 8px;
+      overflow: hidden;
+      margin-bottom: 140px;
+    }
+    .dashboard-tile {
+      background: white;
+      padding: 15px;
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    table { 
+      width: 100%; 
+      border-collapse: collapse; 
+      margin-top: 20px; 
+      background: white; 
+    }
+    th, td { 
+      border: 1px solid #ccc; 
+      padding: 8px; 
+      text-align: center; 
+    }
+    th { 
+      background-color: #007db8; 
+      color: white; 
+    }
+    input[type='number'] { 
+      width: 60px; 
+    }
+    .results { 
+      margin-top: 20px; 
+      padding: 10px; 
+      background: #e8f0fe; 
+      border-radius: 6px; 
+      text-align: center; 
+      font-size: 1.2em; 
+    }
+    .chart-container {
+      position: relative;
+      height: 300px;
+      width: 100%;
+    }
+    #map-container {
+      height: 400px;
+      width: 100%;
+      background: white;
+      border-radius: 8px;
+      margin-top: 20px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    .data-display {
+      margin-top: 10px;
+      padding: 10px;
+      background-color: #fff;
+      border-radius: 4px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+      min-height: 60px;
+    }
+    .congestion-indicator {
+      width: 16px;
+      height: 16px;
+      display: inline-block;
+      border-radius: 50%;
+      margin-right: 5px;
+    }
+    .congestion-low {
+      background-color: green;
+    }
+    .congestion-medium {
+      background-color: orange;
+    }
+    .congestion-high {
+      background-color: red;
+    }
+    .allocation-control {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .allocation-control button {
+      width: 30px;
+      height: 30px;
+      margin: 0 5px;
+      background: #007db8;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    .allocation-control button:hover {
+      background: #005d88;
+    }
+    .error-message {
+      color: red;
+      font-size: 0.9em;
+      margin-top: 5px;
+    }
+    .actions {
+      margin-top: 20px;
+      display: flex;
+      justify-content: center;
+      gap: 15px;
+    }
+    .actions button {
+      padding: 10px 15px;
+      background: #007db8;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 1em;
+    }
+    .actions button:hover {
+      background: #005d88;
+    }
+    .metrics-container {
+      display: grid;
+      grid-template-columns: 0.91fr 0.91fr 0.91fr 1.33fr;
+      grid-template-rows: auto;
+      gap: 20px;
+      padding: 20px;
+      width: calc(100% - 290px);
+      position: fixed;
+      bottom: 20px;
+      top: auto;
+      height: auto;
+      left: 250px;
+      z-index: 1000;
+      background-color: transparent;
+    }
+    .metric-box {
+      background: white;
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      padding: 20px 15px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 140px;
+      margin-bottom: 0;
+    }
+    .metric-content {
+      font-size: 1.2em;
+      font-weight: 500;
+      color: #333;
+      text-align: center;
+    }
+    .main-content {
+      margin-left: 250px;
+      padding: 20px;
+      padding-bottom: 0;
+    }
+    .side-box {
+      background: white;
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      padding: 20px;
+      display: flex;
+      align-items: flex-start;
+      justify-content: flex-start;
+      position: fixed;
+      width: calc(24% - 40px);
+      right: 40px;
+      top: 80px;
+      bottom: 240px; /* Increased space from bottom boxes to make it shorter */
+      height: auto;
+      z-index: 900;
+      overflow: hidden;
+    }
+    
+    .news-container {
+      height: 100%;
+      width: 100%;
+      overflow-y: auto;
+      padding-right: 10px;
+    }
+    
+    .news-container::-webkit-scrollbar {
+      width: 6px;
+    }
+    
+    .news-container::-webkit-scrollbar-track {
+      background: #f1f1f1;
+      border-radius: 10px;
+    }
+    
+    .news-container::-webkit-scrollbar-thumb {
+      background: #c1c1c1;
+      border-radius: 10px;
+    }
+    
+    .news-container::-webkit-scrollbar-thumb:hover {
+      background: #a1a1a1;
+    }
+    
+    .news-item {
+      border-bottom: 1px solid #e0e0e0;
+      padding-bottom: 12px;
+      margin-bottom: 12px;
+    }
+    
+    .news-item:last-child {
+      border-bottom: none;
+      margin-bottom: 0;
+    }
+    
+    .news-headline {
+      font-weight: 600;
+      margin-bottom: 2px;
+      font-size: 13px;
+      color: #1a0dab;
+      cursor: pointer;
+      text-decoration: none;
+    }
+    
+    .news-headline:hover {
+      text-decoration: underline;
+    }
+    
+    .news-timestamp {
+      color: #666;
+      margin-top: 0;
+      font-size: 11px;
+      margin-bottom: 3px;
+    }
+    
+    .news-snippet {
+      color: #545454;
+      font-size: 12px;
+      margin-top: 0;
+      margin-bottom: 3px;
+    }
+    
+    .news-url {
+      color: #006621;
+      font-size: 11px;
+      margin: 0;
+    }
+  </style>
+  </head>
+  <body class="kpi-page">
+  <div class="top-bar">
+    <div class="top-bar-left">
+      <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/4/48/Dell_Logo.svg/1024px-Dell_Logo.svg.png" alt="Dell Logo" class="dell-logo">
+      <span class="prediction-model">Interactive Prediction Model</span>
+    </div>
+    <div class="top-bar-right">
+        <span style="color: #333; font-weight: 500; margin-right: 15px;">Welcome, Team A</span>
+        <div class="icon-button">
+            <span class="help-icon">?</span>
+        </div>
+        <div class="icon-button">
+            <div class="account-icon"></div>
+        </div>
+    </div>
+  </div>
+
+  <div class="side-dashboard">
+    <div class="nav-item active" onclick="window.location.href='index.html'">KPI's</div>
+    <div class="nav-item" onclick="window.location.href='emissions.html'">Emissions</div>
+    <div class="nav-item" onclick="window.location.href='suppliers.html'">Suppliers</div>
+    <div class="nav-item" onclick="window.location.href='data.html'">Data</div>
+  </div>
+
+  <div class="main-content">
+    <div class="dashboard-grid">
+      <div class="map-container">
+        <div id="map-container" style="height: 54vh;"></div>
+      </div>
+    </div>
+    
+    <div class="side-box">
+      <div class="news-container">
+        <div style="text-align: left;">
+          <h3 style="margin-top: 0; color: #007db8;">News</h3>
+          
+          <div class="news-item">
+            <a href="#" class="news-headline">Customs Systems Maintenance Scheduled for Houston Port</a>
+            <p class="news-timestamp">1 hour ago</p>
+            <p class="news-snippet">IT systems update overnight...</p>
+            <p class="news-url">www.portwatchnews.com/houston/customs-maintenance</p>
+          </div>
+          
+          <div class="news-item">
+            <a href="#" class="news-headline">East Coast Rail Congestion Could Impact Savannah Port Transfers</a>
+            <p class="news-timestamp">2 hours ago</p>
+            <p class="news-snippet">Outbound freight delays likely...</p>
+            <p class="news-url">www.logisticsdaily.io/savannah/rail-delay</p>
+          </div>
+          
+          <div class="news-item">
+            <a href="#" class="news-headline">Prince Rupert Officials Monitor Labor Risk Amid Canadian Dock Union Vote</a>
+            <p class="news-timestamp">3 hours ago</p>
+            <p class="news-snippet">Union vote draws concern...</p>
+            <p class="news-url">www.freightscope.ca/rupert/labor-watch</p>
+          </div>
+          
+          <div class="news-item">
+            <a href="#" class="news-headline">Labor Disputes at LA Ports Expected to End in 3 Weeks</a>
+            <p class="news-timestamp">3 hours ago</p>
+            <p class="news-snippet">Negotiations show early progress...</p>
+            <p class="news-url">www.supplypost.com/la-port/dispute-resolution</p>
+          </div>
+          
+          <div class="news-item">
+            <a href="#" class="news-headline">Air Freight Rates Spike 12% Due to Global Capacity Constraints</a>
+            <p class="news-timestamp">4 hours ago</p>
+            <p class="news-snippet">Rates jump from surge...</p>
+            <p class="news-url">www.airfreightglobal.com/trends/price-spike</p>
+          </div>
+          
+          <div class="news-item">
+            <a href="#" class="news-headline">Prince Rupert Forecasted to See Rain and Fog This Week</a>
+            <p class="news-timestamp">5 hours ago</p>
+            <p class="news-snippet">Visibility concerns this week...</p>
+            <p class="news-url">www.portweather.net/rupert/fog-forecast</p>
+          </div>
+          
+          <div class="news-item">
+            <a href="#" class="news-headline">Hot Weather at Savannah Port Causes Delays in Crane Operations</a>
+            <p class="news-timestamp">7 hours ago</p>
+            <p class="news-snippet">High temps slow operations...</p>
+            <p class="news-url">www.portopsupdate.com/savannah/heat-delay</p>
+          </div>
+          
+          <div class="news-item">
+            <a href="#" class="news-headline">Houston Port Adds 15% Temporary Capacity to Offset LA Backlog</a>
+            <p class="news-timestamp">Yesterday</p>
+            <p class="news-snippet">Extra yard space opened...</p>
+            <p class="news-url">www.gulfcoastlogistics.org/houston/expansion-plan</p>
+          </div>
+          
+          <div class="news-item">
+            <a href="#" class="news-headline">Savannah Schedules Routine Dredging — Delays Expected Next Week</a>
+            <p class="news-timestamp">1 day ago</p>
+            <p class="news-snippet">Night work planned...</p>
+            <p class="news-url">www.portplanning.gov/savannah/dredge-alert</p>
+          </div>
+          
+          <div class="news-item">
+            <a href="#" class="news-headline">July 4th Historically Brings Heavier Traffic Near U.S. Ports</a>
+            <p class="news-timestamp">2 days ago</p>
+            <p class="news-snippet">Annual congestion expected...</p>
+            <p class="news-url">www.portanalytics.us/reports/holiday-impact</p>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <div class="metrics-container">
+      <div class="metric-box">
+        <div class="metric-content">Box 1</div>
+      </div>
+      <div class="metric-box">
+        <div class="metric-content">Box 2</div>
+      </div>
+      <div class="metric-box">
+        <div class="metric-content">Box 3</div>
+      </div>
+      <div class="metric-box">
+        <div class="metric-content">Box 4</div>
+      </div>
+    </div>
+
+    <div style="display: none;">
+      <!-- Hidden original content that has functionality we'll use for data -->
+      <table id="hidden-data-table">
+        <thead>
+          <tr>
+            <th>Port</th>
+            <th>Max Capacity</th>
+            <th>Cost/Container ($)</th>
+            <th>Lead Time (Days)</th>
+            <th>Containers Allocated</th>
+            <th>Utilization %</th>
+            <th>CPU ($)</th>
+            <th>Port Score</th>
+            <th>Congestion</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Houston</td>
+            <td id="cap_houston">47</td>
+            <td><input type="number" value="10000" id="cost_houston" min="1000"></td>
+            <td><input type="number" value="49" id="time_houston" min="1"></td>
+            <td class="allocation-control">
+              <button onclick="adjustAllocation('houston', -1)">-</button>
+              <input type="number" value="30" id="alloc_houston" min="0" max="47">
+              <button onclick="adjustAllocation('houston', 1)">+</button>
+            </td>
+            <td id="util_houston">0%</td>
+            <td id="cpu_houston">$0</td>
+            <td id="score_houston">0</td>
+            <td>
+              <select id="congestion_houston" onchange="updateTotals()">
+                <option value="0">Low</option>
+                <option value="0.5" selected>Medium</option>
+                <option value="1">High</option>
+              </select>
+            </td>
+          </tr>
+          <tr>
+            <td>Savannah</td>
+            <td id="cap_savannah">50</td>
+            <td><input type="number" value="10000" id="cost_savannah" min="1000"></td>
+            <td><input type="number" value="56" id="time_savannah" min="1"></td>
+            <td class="allocation-control">
+              <button onclick="adjustAllocation('savannah', -1)">-</button>
+              <input type="number" value="5" id="alloc_savannah" min="0" max="50">
+              <button onclick="adjustAllocation('savannah', 1)">+</button>
+            </td>
+            <td id="util_savannah">0%</td>
+            <td id="cpu_savannah">$0</td>
+            <td id="score_savannah">0</td>
+            <td>
+              <select id="congestion_savannah" onchange="updateTotals()">
+                <option value="0">Low</option>
+                <option value="0.5" selected>Medium</option>
+                <option value="1">High</option>
+              </select>
+            </td>
+          </tr>
+          <tr>
+            <td>Prince Rupert</td>
+            <td id="cap_prince">35</td>
+            <td><input type="number" value="10000" id="cost_prince" min="1000"></td>
+            <td><input type="number" value="45" id="time_prince" min="1"></td>
+            <td class="allocation-control">
+              <button onclick="adjustAllocation('prince', -1)">-</button>
+              <input type="number" value="10" id="alloc_prince" min="0" max="35">
+              <button onclick="adjustAllocation('prince', 1)">+</button>
+            </td>
+            <td id="util_prince">0%</td>
+            <td id="cpu_prince">$0</td>
+            <td id="score_prince">0</td>
+            <td>
+              <select id="congestion_prince" onchange="updateTotals()">
+                <option value="0">Low</option>
+                <option value="0.5" selected>Medium</option>
+                <option value="1">High</option>
+              </select>
+            </td>
+          </tr>
+          <tr>
+            <td>Air Freight</td>
+            <td id="cap_air">12</td>
+            <td><input type="number" value="30000" id="cost_air" min="1000"></td>
+            <td><input type="number" value="7" id="time_air" min="1"></td>
+            <td class="allocation-control">
+              <button onclick="adjustAllocation('air', -1)">-</button>
+              <input type="number" value="5" id="alloc_air" min="0" max="12">
+              <button onclick="adjustAllocation('air', 1)">+</button>
+            </td>
+            <td id="util_air">0%</td>
+            <td id="cpu_air">$0</td>
+            <td id="score_air">0</td>
+            <td>
+              <select id="congestion_air" onchange="updateTotals()">
+                <option value="0">Low</option>
+                <option value="0.5" selected>Medium</option>
+                <option value="1">High</option>
+              </select>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+      
+      <div id="error-container" class="error-message"></div>
+
+      <div class="results">
+        <p><strong>Total Weekly Cost:</strong> $<span id="total_cost">0</span></p>
+        <p><strong>Average Lead Time:</strong> <span id="avg_time">0</span> days</p>
+        <p><strong>Total Containers Allocated:</strong> <span id="total_alloc">0</span> / 50</p>
+        <p><strong>Cost Per Unit (CPU):</strong> $<span id="total_cpu">0</span></p>
+        <p><strong>Weekly Shipment Value:</strong> $<span id="shipment_value">0</span></p>
+      </div>
+
+      <div class="actions">
+        <button onclick="calculateOptimalAllocation()">Calculate Optimal Allocation</button>
+        <button onclick="resetAllocation()">Reset Allocation</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // System Constants
+    const SYSTEM_CONSTANTS = {
+      MAX_WEEKLY_CONTAINERS: 50,
+      UNITS_PER_CONTAINER: 1000,
+      UNIT_VALUE: 500,
+      WEEKLY_SHIPMENT_VALUE: 25000000,
+      PORT_COORDINATES: {
+        houston: [29.7604, -95.3698],
+        savannah: [32.0809, -81.0912],
+        prince: [54.3150, -130.3208],
+        air: [36.1627, -86.7816], // Nashville (destination)
+        nashville: [36.1627, -86.7816]
+      }
+    };
+
+    // Initialize map
+    let map = null;
+    let portMarkers = {};
+    let shipLines = {};
+
+    function initMap() {
+      if (map) return; // Map already initialized
+      
+      map = L.map('map-container', {
+        zoomControl: true,
+        attributionControl: false
+      }).setView([30, -100], 3);
+      
+      L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png', {
+        maxZoom: 19
+      }).addTo(map);
+
+      // Create ship icon
+      const shipIcon = L.divIcon({
+        className: 'ship-icon',
+        html: `<div style="width: 40px; height: 40px;">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 60" fill="#333">
+              <!-- Ship Hull -->
+              <rect x="10" y="30" width="80" height="20" rx="5" fill="#555" />
+              <!-- Ship Deck -->
+              <rect x="15" y="20" width="70" height="10" fill="#777" />
+              <!-- Containers -->
+              <rect x="20" y="10" width="10" height="10" fill="#2196F3" />
+              <rect x="32" y="10" width="10" height="10" fill="#4CAF50" />
+              <rect x="44" y="10" width="10" height="10" fill="#F44336" />
+              <rect x="56" y="10" width="10" height="10" fill="#FFC107" />
+              <rect x="68" y="10" width="10" height="10" fill="#9C27B0" />
+              <!-- Bridge -->
+              <rect x="15" y="5" width="15" height="15" fill="#333" />
+              <!-- Water Line -->
+              <path d="M5,50 C10,45 15,55 20,50 C25,45 30,55 35,50 C40,45 45,55 50,50 C55,45 60,55 65,50 C70,45 75,55 80,50 C85,45 90,55 95,50" stroke="#29B6F6" fill="none" stroke-width="2" />
+            </svg>
+        </div>`,
+        iconSize: [40, 40],
+        iconAnchor: [20, 30]
+      });
+
+      // Port locations with updated data
+      const ports = [
+        {
+          name: 'Prince Rupert',
+          position: [54.3150, -130.3208],
+          capacity: '20%',
+          congestion: 'Low'
+        },
+        {
+          name: 'Houston',
+          position: [29.7604, -95.3698],
+          capacity: '95%',
+          congestion: 'Moderate'
+        },
+        {
+          name: 'Savannah',
+          position: [32.0809, -81.0912],
+          capacity: '75%',
+          congestion: 'Medium'
+        },
+        {
+          name: 'China',
+          position: [30.5, -238.0],
+          capacity: '60%',
+          congestion: 'Medium'
+        }
+      ];
+      
+      // Add the port markers
+      ports.forEach(port => {
+        // Choose color based on congestion level
+        let markerColor = '#4CAF50'; // Low - green
+        if (port.congestion === 'Medium' || port.congestion === 'Moderate') {
+          markerColor = '#FF9800'; // Medium - orange
+        } else if (port.congestion === 'High') {
+          markerColor = '#F44336'; // High - red
+        }
+        
+        const marker = L.marker(port.position, {
+          icon: L.divIcon({
+            className: 'port-marker',
+            html: `<div style="background-color: ${markerColor}; width: 12px; height: 12px; border-radius: 50%; border: 2px solid white;"></div>`,
+            iconSize: [16, 16]
+          })
+        }).addTo(map);
+        
+        // Custom HTML popup
+        const popupContent = `
+          <div style="font-family: 'Segoe UI', sans-serif; padding: 5px;">
+            <div style="font-weight: 500;">${port.name}</div>
+            <div>Capacity: ${port.capacity}</div>
+            <div>Congestion: ${port.congestion}</div>
+          </div>
+        `;
+        
+        marker.bindPopup(popupContent);
+        portMarkers[port.name.toLowerCase().replace(' ', '_')] = marker;
+        
+        // Add a label for the port
+        L.marker(port.position, {
+          icon: L.divIcon({
+            className: 'port-label',
+            html: `
+              <div style="position: relative; text-align: center;">
+                <div class="port-button" style="background-color: #0066cc; color: white; padding: 6px 8px; border-radius: 15px; font-size: 12px; font-weight: bold; box-shadow: 0 2px 4px rgba(0,0,0,0.3); display: inline-block; min-width: 80px; margin-bottom: 8px; cursor: pointer; transition: background-color 0.2s, box-shadow 0.2s;">
+                  ${port.name}
+                </div>
+                <div style="position: absolute; bottom: 0px; left: 50%; transform: translateX(-50%); width: 0; height: 0; border-left: 8px solid transparent; border-right: 8px solid transparent; border-top: 8px solid #0066cc;"></div>
+              </div>
+            `,
+            iconSize: [100, 45],
+            iconAnchor: [50, 15]
+          })
+        }).on('click', function(e) {
+          // Get port details
+          const portName = port.name;
+          const portCapacity = getPortCapacity(portName);
+          const congestion = getPortCongestion(portName);
+          
+          // Create custom popup
+          createPortPopup(e.target, portName, portCapacity, congestion);
+          
+          // Prevent the event from propagating to the map
+          L.DomEvent.stopPropagation(e);
+        }).on('mouseover', function(e) {
+          // Darken the port button on hover
+          const button = e.sourceTarget._icon.querySelector('.port-button');
+          if (button) {
+            button.style.backgroundColor = '#004c99';
+            button.style.boxShadow = '0 3px 6px rgba(0,0,0,0.4)';
+          }
+        }).on('mouseout', function(e) {
+          // Reset the port button on mouseout
+          const button = e.sourceTarget._icon.querySelector('.port-button');
+          if (button) {
+            button.style.backgroundColor = '#0066cc';
+            button.style.boxShadow = '0 2px 4px rgba(0,0,0,0.3)';
+          }
+        }).addTo(map);
+      });
+      
+      // Define shipping routes
+      // Ship 1: China to Houston via Panama Canal
+      const shipRoute1 = [
+        [30.5, -238.0], // Starting point near China
+        [18.0, -200.0], // Pacific crossing waypoint 
+        [12.0, -140.0], // Approaching Panama
+        [9.0, -82.0],   // Panama Canal
+        [20.0, -85.0],  // Caribbean Sea
+        [23.5, -88.0],  // Yucatan Channel
+        [25.0, -92.0],  // Gulf of Mexico (further south, deeper in the Gulf)
+        [29.7604, -95.3698]  // Houston
+      ];
+      
+      // Ship 2: China to Savannah via Panama
+      const shipRoute2 = [
+        [30.5, -238.0], // Starting point near China 
+        [20.0, -200.0], // Pacific crossing waypoint
+        [12.0, -120.0], // Eastern Pacific
+        [9.0, -82.0],   // Panama Canal
+        [20.0, -75.0],  // Caribbean
+        [32.0809, -81.0912]  // Savannah
+      ];
+      
+      // Current position along the routes (0 to 1)
+      const ship1Position = 0.75; // Moved further into Gulf of Mexico
+      const ship2Position = 0.4; // 40% along the route to Savannah
+      
+      // Helper functions for routes
+      function getPointAlongRoute(route, percentage) {
+        if (percentage <= 0) return route[0];
+        if (percentage >= 1) return route[route.length - 1];
+        
+        // Linear interpolation between waypoints
+        const totalSegments = route.length - 1;
+        const segmentPercentage = percentage * totalSegments;
+        const segmentIndex = Math.floor(segmentPercentage);
+        const segmentRemainder = segmentPercentage - segmentIndex;
+        
+        const startPoint = route[segmentIndex];
+        const endPoint = route[segmentIndex + 1];
+        
+        return [
+            startPoint[0] + (endPoint[0] - startPoint[0]) * segmentRemainder,
+            startPoint[1] + (endPoint[1] - startPoint[1]) * segmentRemainder
+        ];
+      }
+      
+      function getRouteSegment(route, startPercentage, endPercentage) {
+        const segment = [];
+        const totalSegments = route.length - 1;
+        
+        // Add start point
+        segment.push(getPointAlongRoute(route, startPercentage));
+        
+        // Find waypoints within segment
+        const startSegmentIndex = Math.ceil(startPercentage * totalSegments);
+        const endSegmentIndex = Math.floor(endPercentage * totalSegments);
+        
+        // Add intermediate waypoints
+        for (let i = startSegmentIndex; i <= endSegmentIndex && i < route.length; i++) {
+            segment.push(route[i]);
+        }
+        
+        // Add end point if not at end
+        if (endPercentage < 1 && segment[segment.length-1] !== getPointAlongRoute(route, endPercentage)) {
+            segment.push(getPointAlongRoute(route, endPercentage));
+        }
+        
+        return segment;
+      }
+      
+      function createCurvedLine(startPoint, endPoint, curvature, numPoints) {
+        const points = [];
+        
+        // Control point for curve
+        const midX = (startPoint[1] + endPoint[1]) / 2;
+        const midY = (startPoint[0] + endPoint[0]) / 2;
+        
+        // Perpendicular offset
+        const dx = endPoint[1] - startPoint[1];
+        const dy = endPoint[0] - startPoint[0];
+        
+        // Control point is perpendicular to the line between start and end
+        const cpX = midX - dy * curvature;
+        const cpY = midY + dx * curvature;
+        
+        // Quadratic Bezier curve
+        for (let i = 0; i <= numPoints; i++) {
+            const t = i / numPoints;
+            const t2 = t * t;
+            const mt = 1 - t;
+            const mt2 = mt * mt;
+            
+            const x = mt2 * startPoint[0] + 2 * mt * t * cpY + t2 * endPoint[0];
+            const y = mt2 * startPoint[1] + 2 * mt * t * cpX + t2 * endPoint[1];
+            
+            points.push([x, y]);
+        }
+        
+        return points;
+      }
+      
+      // Get current ship positions
+      const ship1CurrentPos = getPointAlongRoute(shipRoute1, ship1Position);
+      const ship2CurrentPos = getPointAlongRoute(shipRoute2, ship2Position);
+      
+      // Add ship markers
+      const ship1 = L.marker(ship1CurrentPos, { icon: shipIcon }).addTo(map);
+      const ship2 = L.marker(ship2CurrentPos, { icon: shipIcon }).addTo(map);
+      
+      ship1.bindPopup("<b>Cargo Ship 1</b><br>Route: China → Houston<br>Status: In Transit");
+      ship2.bindPopup("<b>Cargo Ship 2</b><br>Route: China → Savannah<br>Status: In Transit");
+      
+      // Draw ship routes with better visibility
+      // Ship 1: Completed route (solid line)
+      L.polyline(getRouteSegment(shipRoute1, 0, ship1Position), {
+        color: '#2E7D32',
+        weight: 3,
+        opacity: 0.9
+      }).addTo(map);
+      
+      // Ship 1: Remaining route (dotted line)
+      L.polyline(getRouteSegment(shipRoute1, ship1Position, 1), {
+        color: '#2E7D32',
+        weight: 3,
+        opacity: 0.7,
+        dashArray: '8, 6'
+      }).addTo(map);
+      
+      // Ship 2: Completed route (solid line)
+      L.polyline(getRouteSegment(shipRoute2, 0, ship2Position), {
+        color: '#F57C00',
+        weight: 3,
+        opacity: 0.9
+      }).addTo(map);
+      
+      // Ship 2: Remaining route (dotted line)
+      L.polyline(getRouteSegment(shipRoute2, ship2Position, 1), {
+        color: '#F57C00',
+        weight: 3,
+        opacity: 0.7,
+        dashArray: '8, 6'
+      }).addTo(map);
+      
+      // Old routes for distribution
+      // Add shipping routes from Prince Rupert
+      L.polyline([
+        [54.3150, -130.3208], // Prince Rupert
+        [36.1627, -86.7816]   // Nashville
+      ], {
+        color: '#4CAF50',
+        weight: 2,
+        opacity: 0.5,
+        dashArray: '5, 5'
+      }).addTo(map);
+      
+      // Add route from Houston to Nashville
+      L.polyline([
+        [29.7604, -95.3698], // Houston
+        [36.1627, -86.7816]  // Nashville
+      ], {
+        color: '#2E7D32',
+        weight: 2,
+        opacity: 0.5,
+        dashArray: '5, 5'
+      }).addTo(map);
+      
+      // Add route from Savannah to Nashville
+      L.polyline([
+        [32.0809, -81.0912], // Savannah
+        [36.1627, -86.7816]  // Nashville
+      ], {
+        color: '#F57C00',
+        weight: 2,
+        opacity: 0.5,
+        dashArray: '5, 5'
+      }).addTo(map);
+
+      // Add origin point in China with interactive label
+      L.marker([30.5, -238.0], {
+        icon: L.divIcon({
+          className: 'origin-label',
+          html: `
+            <div style="position: relative; text-align: center;">
+              <div class="port-button" style="background-color: #0066cc; color: white; padding: 6px 8px; border-radius: 15px; font-size: 12px; font-weight: bold; box-shadow: 0 2px 4px rgba(0,0,0,0.3); display: inline-block; min-width: 80px; margin-bottom: 8px; cursor: pointer; transition: background-color 0.2s, box-shadow 0.2s;">
+                China
+              </div>
+              <div style="position: absolute; bottom: 0px; left: 50%; transform: translateX(-50%); width: 0; height: 0; border-left: 8px solid transparent; border-right: 8px solid transparent; border-top: 8px solid #0066cc;"></div>
+            </div>
+          `,
+          iconSize: [100, 45],
+          iconAnchor: [50, 15]
+        })
+      }).on('click', function(e) {
+        // Get port details
+        const portName = "China";
+        const portCapacity = getPortCapacity(portName);
+        const congestion = getPortCongestion(portName);
+        
+        // Create custom popup
+        createPortPopup(e.target, portName, portCapacity, congestion);
+        
+        // Prevent the event from propagating to the map
+        L.DomEvent.stopPropagation(e);
+      }).on('mouseover', function(e) {
+        // Darken the port button on hover
+        const button = e.sourceTarget._icon.querySelector('.port-button');
+        if (button) {
+          button.style.backgroundColor = '#004c99';
+          button.style.boxShadow = '0 3px 6px rgba(0,0,0,0.4)';
+        }
+      }).on('mouseout', function(e) {
+        // Reset the port button on mouseout
+        const button = e.sourceTarget._icon.querySelector('.port-button');
+        if (button) {
+          button.style.backgroundColor = '#0066cc';
+          button.style.boxShadow = '0 2px 4px rgba(0,0,0,0.3)';
+        }
+      }).addTo(map);
+    }
+
+    function updateMap() {
+      if (!map) initMap();
+    }
+
+    function calculatePortMetrics(port) {
+      const capacity = parseInt(document.getElementById(`cap_${port}`).innerHTML);
+      const cost = parseFloat(document.getElementById(`cost_${port}`).value);
+      const time = parseFloat(document.getElementById(`time_${port}`).value);
+      const alloc = parseInt(document.getElementById(`alloc_${port}`).value) || 0;
+      const congestionScore = parseFloat(document.getElementById(`congestion_${port}`).value);
+
+      // Calculate utilization
+      const utilization = (alloc / capacity) * 100;
+      document.getElementById(`util_${port}`).innerText = utilization.toFixed(1) + '%';
+
+      // Calculate CPU
+      const cpu = cost / SYSTEM_CONSTANTS.UNITS_PER_CONTAINER;
+      document.getElementById(`cpu_${port}`).innerText = '$' + cpu.toFixed(2);
+
+      // Calculate port score
+      const score = (1 / cost) * 0.4 + 
+                   (1 / time) * 0.3 + 
+                   (capacity / 100) * 0.2 + 
+                   (1 - congestionScore) * 0.1;
+      document.getElementById(`score_${port}`).innerText = score.toFixed(3);
+
+      return { cost, time, alloc, utilization, cpu, score, congestionScore, capacity };
+    }
+
+    function updateTotals() {
+      const ports = ['houston', 'savannah', 'prince', 'air'];
+      let totalCost = 0, totalTime = 0, totalAlloc = 0;
+      let airAlloc = 0, groundAlloc = 0;
+      let portMetrics = {};
+
+      ports.forEach(port => {
+        const metrics = calculatePortMetrics(port);
+        portMetrics[port] = metrics;
+        totalCost += metrics.cost * metrics.alloc;
+        totalTime += metrics.time * metrics.alloc;
+        totalAlloc += metrics.alloc;
+
+        if (port === 'air') {
+          airAlloc = metrics.alloc;
+        } else {
+          groundAlloc += metrics.alloc;
+        }
+      });
+
+      // Validate total allocation
+      const errorContainer = document.getElementById('error-container');
+      if (totalAlloc > SYSTEM_CONSTANTS.MAX_WEEKLY_CONTAINERS) {
+        errorContainer.innerHTML = `Error: Total allocation (${totalAlloc}) exceeds maximum capacity (${SYSTEM_CONSTANTS.MAX_WEEKLY_CONTAINERS}).`;
+      } else {
+        errorContainer.innerHTML = '';
+      }
+
+      // Update main metrics
+      document.getElementById('total_cost').innerText = totalCost.toLocaleString();
+      document.getElementById('avg_time').innerText = totalAlloc > 0 ? (totalTime / totalAlloc).toFixed(1) : 0;
+      document.getElementById('total_alloc').innerText = totalAlloc;
+      document.getElementById('total_cpu').innerText = totalAlloc > 0 ? 
+        (totalCost / (totalAlloc * SYSTEM_CONSTANTS.UNITS_PER_CONTAINER)).toFixed(2) : 
+        '0.00';
+      document.getElementById('shipment_value').innerText = 
+        (totalAlloc * SYSTEM_CONSTANTS.UNITS_PER_CONTAINER * SYSTEM_CONSTANTS.UNIT_VALUE).toLocaleString();
+
+      // Update map
+      updateMap();
+    }
+
+    function adjustAllocation(port, delta) {
+      const input = document.getElementById(`alloc_${port}`);
+      const maxCapacity = parseInt(document.getElementById(`cap_${port}`).innerHTML);
+      let newValue = parseInt(input.value) + delta;
+      
+      // Ensure value is within bounds
+      newValue = Math.max(0, Math.min(maxCapacity, newValue));
+      input.value = newValue;
+      
+      updateTotals();
+    }
+
+    function calculateOptimalAllocation() {
+      const ports = ['houston', 'savannah', 'prince', 'air'];
+      const portScores = {};
+      
+      // Calculate scores for each port
+      ports.forEach(port => {
+        const metrics = calculatePortMetrics(port);
+        portScores[port] = {
+          score: metrics.score,
+          capacity: metrics.capacity
+        };
+      });
+      
+      // Sort ports by score
+      const sortedPorts = ports.sort((a, b) => portScores[b].score - portScores[a].score);
+      
+      // Allocate containers based on score
+      let remainingContainers = SYSTEM_CONSTANTS.MAX_WEEKLY_CONTAINERS;
+      
+      // Reset allocations
+      ports.forEach(port => {
+        document.getElementById(`alloc_${port}`).value = 0;
+      });
+      
+      // Allocate to ports by descending score
+      sortedPorts.forEach(port => {
+        const allocation = Math.min(remainingContainers, portScores[port].capacity);
+        document.getElementById(`alloc_${port}`).value = allocation;
+        remainingContainers -= allocation;
+      });
+      
+      updateTotals();
+    }
+
+    function resetAllocation() {
+      document.getElementById('alloc_houston').value = 30;
+      document.getElementById('alloc_savannah').value = 5;
+      document.getElementById('alloc_prince').value = 10;
+      document.getElementById('alloc_air').value = 5;
+      
+      document.querySelectorAll('select').forEach(select => {
+        select.value = 0.5;
+      });
+      
+      updateTotals();
+    }
+
+    // Initialize the page
+    window.onload = function() {
+      initMap(); // Initialize map on page load
+      
+      // Try to load data from the Data page if available
+      const savedData = localStorage.getItem('dellPortOptimizer');
+      if (savedData) {
+        try {
+          const parsedData = JSON.parse(savedData);
+          if (parsedData.summary) {
+            // Calculate additional metrics for the dynamic display
+            parsedData.summary.capacityPercent = Math.round((parsedData.summary.totalContainers / (parsedData.weeklyData ? parsedData.weeklyData.length * 50 : 400)) * 100);
+            
+            // Calculate cost trend (comparing current week with previous week)
+            if (parsedData.weeklyData && parsedData.weeklyData.length > 1) {
+              const currentWeekCost = parsedData.weeklyData[parsedData.weeklyData.length - 1].totalCost;
+              const previousWeekCost = parsedData.weeklyData[parsedData.weeklyData.length - 2].totalCost;
+              
+              if (currentWeekCost && previousWeekCost) {
+                const percentChange = Math.round(((currentWeekCost - previousWeekCost) / previousWeekCost) * 100);
+                parsedData.costTrend = percentChange;
+              } else {
+                // If we don't have weekly cost data, create a sample trend for demonstration
+                parsedData.costTrend = -4; // Sample negative trend (cost reduction)
+              }
+            } else {
+              // If we don't have enough weeks of data, create a sample trend for demonstration
+              parsedData.costTrend = -4; // Sample negative trend (cost reduction)
+            }
+            
+            // Create summary box in Box 5
+            const box5 = document.querySelector('.side-box .metric-content');
+            if (box5) {
+              box5.innerHTML = `
+                <div style="text-align: left;">
+                  <h3 style="margin-top: 0; color: #007db8;">News</h3>
+                  
+                  <div style="border-bottom: 1px solid #e0e0e0; padding-bottom: 10px; margin-bottom: 10px;">
+                    <p style="font-weight: 600; margin-bottom: 2px; font-size: 13px;">Labor Disputes at LA Ports expected end...</p>
+                    <p style="color: #666; margin-top: 0; font-size: 11px;">3 hours ago</p>
+                  </div>
+                  
+                  <div style="border-bottom: 1px solid #e0e0e0; padding-bottom: 10px; margin-bottom: 10px;">
+                    <p style="font-weight: 600; margin-bottom: 2px; font-size: 13px;">Hot Weather at Savannah port causes...</p>
+                    <p style="color: #666; margin-top: 0; font-size: 11px;">7 hours ago</p>
+                  </div>
+                  
+                  <div>
+                    <p style="font-weight: 600; margin-bottom: 2px; font-size: 13px;">July 4th historically brings in more traffic, effecting...</p>
+                    <p style="color: #666; margin-top: 0; font-size: 11px;">2 days ago</p>
+                  </div>
+                </div>
+              `;
+            }
+            
+            // Set data in bottom boxes
+            const boxes = document.querySelectorAll('.metrics-container .metric-box .metric-content');
+            if (boxes.length >= 4) {
+              // Box 1 - Shipments with capacity and cost
+              boxes[0].innerHTML = `
+                <div style="display: flex; flex-direction: column; width: 100%; height: 100%;">
+                  <div style="font-weight: 600; font-size: 14px; color: #333; margin-bottom: 10px; text-align: center;">Shipments</div>
+                  
+                  <div style="display: flex; align-items: center; margin-bottom: 14px; justify-content: space-between;">
+                    <div style="display: flex; align-items: center; flex: 1;">
+                      <div style="margin-right: 12px; display: flex; align-items: center; justify-content: center; background-color: #e3f2fd; width: 38px; height: 38px; border-radius: 50%;">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#0066cc" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                          <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+                          <polyline points="9 22 9 12 15 12 15 22"></polyline>
+                        </svg>
+                      </div>
+                      <div>
+                        <span style="font-size: 20px; font-weight: 700; color: #0066cc;">${parsedData.summary.totalContainers}</span>
+                        <span style="font-size: 14px; color: #666; margin-left: 4px;">containers</span>
+                      </div>
+                    </div>
+                    <div style="background-color: ${parsedData.summary.capacityPercent > 80 ? '#e8f5e9' : parsedData.summary.capacityPercent > 60 ? '#fff8e1' : '#ffebee'}; padding: 5px 10px; border-radius: 16px;">
+                      <span style="font-weight: 600; font-size: 13px; color: ${parsedData.summary.capacityPercent > 80 ? '#2e7d32' : parsedData.summary.capacityPercent > 60 ? '#f57c00' : '#d32f2f'};">
+                        ${parsedData.summary.capacityPercent}% capacity
+                      </span>
+                    </div>
+                  </div>
+                  
+                  <div style="height: 1px; background-color: #e0e0e0; margin: 0 auto 15px; width: 90%;"></div>
+                  
+                  <div style="font-weight: 600; font-size: 14px; color: #333; margin-bottom: 10px; text-align: center;">Cost (current period)</div>
+                  
+                  <div style="display: flex; align-items: center; justify-content: space-between;">
+                    <div style="display: flex; align-items: center; flex: 1;">
+                      <div style="margin-right: 12px; display: flex; align-items: center; justify-content: center; background-color: #e8f5e9; width: 38px; height: 38px; border-radius: 50%;">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#2e7d32" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                          <line x1="12" y1="1" x2="12" y2="23"></line>
+                          <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
+                        </svg>
+                      </div>
+                      <div>
+                        <span style="font-size: 20px; font-weight: 700; color: #2e7d32;">$${Math.round(parsedData.summary.totalCost/1000000).toLocaleString()}M</span>
+                      </div>
+                    </div>
+                    ${parsedData.costTrend ? `
+                      <div style="display: flex; align-items: center;">
+                        <div style="display: flex; align-items: center; background-color: ${parsedData.costTrend > 0 ? '#ffebee' : '#e8f5e9'}; padding: 5px 10px; border-radius: 16px;">
+                          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="${parsedData.costTrend > 0 ? '#d32f2f' : '#2e7d32'}" stroke="${parsedData.costTrend > 0 ? '#d32f2f' : '#2e7d32'}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M12 19V5M5 12l7-7 7 7" transform="${parsedData.costTrend > 0 ? '' : 'rotate(180, 12, 12)'}"></path>
+                          </svg>
+                          <span style="margin-left: 4px; font-weight: 600; font-size: 13px; color: ${parsedData.costTrend > 0 ? '#d32f2f' : '#2e7d32'};">
+                            ${Math.abs(parsedData.costTrend)}%
+                          </span>
+                        </div>
+                      </div>
+                    ` : ''}
+                  </div>
+                </div>
+              `;
+              
+              // Box 2 - Weekly Cost Chart
+              boxes[1].innerHTML = `
+                <div style="display: flex; flex-direction: column; width: 100%; height: 100%;">
+                  <strong style="font-size: 0.9em; margin-bottom: 5px; text-align: center;">Weekly Cost Breakdown</strong>
+                  <div style="width: 100%; height: calc(100% - 25px);">
+                    <canvas id="weeklyCostChart"></canvas>
+                  </div>
+                </div>
+              `;
+              
+              // Create weekly cost chart
+              setTimeout(() => {
+                createWeeklyCostChart(parsedData);
+              }, 100);
+              
+              // Box 3 - Water vs. Air with Environmental Score
+              boxes[2].innerHTML = `
+                <div style="display: flex; flex-direction: column; width: 100%; height: 100%;">
+                  <strong style="font-size: 0.9em; margin-bottom: 5px; text-align: center;">Water vs. Air</strong>
+                  <div style="width: 100%; height: 115px; display: flex; justify-content: center; align-items: center;">
+                    <canvas id="transportModeChart"></canvas>
+                  </div>
+                  
+                  <div style="height: 1px; background-color: #e0e0e0; margin: 4px auto; width: 80%;"></div>
+                  
+                  <div style="display: flex; align-items: center; justify-content: center; margin-top: 0px;">
+                    <div style="display: flex; align-items: center; width: 100%;">
+                      <div style="margin-right: 8px; display: flex; align-items: center; justify-content: center; background-color: #e8f5e9; width: 24px; height: 24px; border-radius: 50%;">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#2e7d32" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                          <path d="M6 3v7a6 6 0 0 0 6 6 6 6 0 0 0 6-6V3"></path>
+                          <line x1="4" y1="21" x2="20" y2="21"></line>
+                          <line x1="12" y1="12" x2="12" y2="21"></line>
+                        </svg>
+                      </div>
+                      <div style="display: flex; justify-content: space-between; align-items: center; width: calc(100% - 32px);">
+                        <span style="font-size: 0.8em; font-weight: 600; color: #333; white-space: nowrap;">Environmental Score</span>
+                        <span style="font-size: 1.1em; font-weight: 700; color: #2e7d32;">${calculateEnvironmentalScore(parsedData)}%</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              `;
+              
+              // Create transport mode chart
+              setTimeout(() => {
+                createTransportModeChart(parsedData);
+              }, 100);
+              
+              // Box 4 - Revenue at Risk
+              boxes[3].innerHTML = `
+                <div style="display: flex; flex-direction: column; height: 100%; width: 100%;">
+                  <strong style="display: block; font-size: 0.9em; margin-bottom: 12px; color: #333; text-align: center;">PowerEdge™ Ai Predictions</strong>
+                  
+                  <div style="display: flex; flex-direction: column; gap: 8px; overflow-y: auto; max-height: 65px; margin-bottom: 8px; padding-right: 5px;">
+                    <div style="background-color: #f5f5f5; border-radius: 8px; padding: 8px 12px;">
+                      <p style="margin: 0; font-size: 13px; line-height: 1.4; text-align: left;">Based on historical data expect a 2.5% increase in Houston congestion.</p>
+                    </div>
+                    
+                    <div style="background-color: #f5f5f5; border-radius: 8px; padding: 8px 12px;">
+                      <p style="margin: 0; font-size: 13px; line-height: 1.4; text-align: left;">Front-load 15 containers in Weeks 1–2</p>
+                    </div>
+                    
+                    <div style="background-color: #f5f5f5; border-radius: 8px; padding: 8px 12px;">
+                      <p style="margin: 0; font-size: 13px; line-height: 1.4; text-align: left;">Consider diverting 5% of shipments to Savannah to reduce risk.</p>
+                    </div>
+                  </div>
+                  
+                  <div style="margin-top: auto; display: flex; align-items: center; gap: 6px; padding-top: 4px; border-top: 1px solid #f0f0f0;">
+                    <input type="text" placeholder="Type a question" id="ai-question-input" style="flex: 1; padding: 8px 12px; border: 1px solid #e0e0e0; border-radius:.8em; font-size: 12px; outline: none; transition: border-color 0.2s, background-color 0.2s;" 
+                    onmouseover="this.style.backgroundColor='#f5f5f5'" onmouseout="this.style.backgroundColor='white'">
+                    
+                    <button id="ai-submit-button" style="background-color: #0066cc; border: none; border-radius: 50%; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: background-color 0.2s;"
+                    onmouseover="this.style.backgroundColor='#0056b3'" onmouseout="this.style.backgroundColor='#0066cc'">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="5" y1="12" x2="19" y2="12"></line>
+                        <polyline points="12 5 19 12 12 19"></polyline>
+                      </svg>
+                    </button>
+                  </div>
+                </div>
+              `;
+            }
+          }
+        } catch (e) {
+          console.error('Error loading saved data:', e);
+          setupDefaultMetrics(); // Set default metrics if there's an error
+        }
+      } else {
+        // No saved data, set default metrics
+        setupDefaultMetrics();
+      }
+    };
+
+    // Setup default metrics when no data is available
+    function setupDefaultMetrics() {
+      const boxes = document.querySelectorAll('.metrics-container .metric-box .metric-content');
+      if (boxes.length >= 4) {
+        // Default Box 1 with sample data
+        boxes[0].innerHTML = `
+          <div style="display: flex; flex-direction: column; width: 100%; height: 100%;">
+            <div style="font-weight: 600; font-size: 14px; color: #333; margin-bottom: 10px; text-align: center;">Shipments</div>
+            
+            <div style="display: flex; align-items: center; margin-bottom: 14px; justify-content: space-between;">
+              <div style="display: flex; align-items: center; flex: 1;">
+                <div style="margin-right: 12px; display: flex; align-items: center; justify-content: center; background-color: #e3f2fd; width: 38px; height: 38px; border-radius: 50%;">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#0066cc" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+                    <polyline points="9 22 9 12 15 12 15 22"></polyline>
+                  </svg>
+                </div>
+                <div>
+                  <span style="font-size: 20px; font-weight: 700; color: #0066cc;">50</span>
+                  <span style="font-size: 14px; color: #666; margin-left: 4px;">containers</span>
+                </div>
+              </div>
+              <div style="background-color: #e8f5e9; padding: 5px 10px; border-radius: 16px;">
+                <span style="font-weight: 600; font-size: 13px; color: #2e7d32;">
+                  100% capacity
+                </span>
+              </div>
+            </div>
+            
+            <div style="height: 1px; background-color: #e0e0e0; margin: 0 auto 15px; width: 90%;"></div>
+            
+            <div style="font-weight: 600; font-size: 14px; color: #333; margin-bottom: 10px; text-align: center;">Cost (current period)</div>
+            
+            <div style="display: flex; align-items: center; justify-content: space-between;">
+              <div style="display: flex; align-items: center; flex: 1;">
+                <div style="margin-right: 12px; display: flex; align-items: center; justify-content: center; background-color: #e8f5e9; width: 38px; height: 38px; border-radius: 50%;">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#2e7d32" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="12" y1="1" x2="12" y2="23"></line>
+                    <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
+                  </svg>
+                </div>
+                <div>
+                  <span style="font-size: 20px; font-weight: 700; color: #2e7d32;">$500K</span>
+                </div>
+              </div>
+              <div style="display: flex; align-items: center;">
+                <div style="display: flex; align-items: center; background-color: #e8f5e9; padding: 5px 10px; border-radius: 16px;">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="#2e7d32" stroke="#2e7d32" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M12 19V5M5 12l7-7 7 7" transform="rotate(180, 12, 12)"></path>
+                  </svg>
+                  <span style="margin-left: 4px; font-weight: 600; font-size: 13px; color: #2e7d32;">
+                    5%
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+        `;
+        
+        // Default Box 2 - Weekly Cost Chart
+        boxes[1].innerHTML = `
+          <div style="display: flex; flex-direction: column; width: 100%; height: 100%;">
+            <strong style="font-size: 0.9em; margin-bottom: 5px; text-align: center;">Weekly Cost Breakdown</strong>
+            <div style="width: 100%; height: calc(100% - 25px);">
+              <canvas id="weeklyCostChart"></canvas>
+            </div>
+          </div>
+        `;
+        
+        // Create default weekly cost chart
+        setTimeout(() => {
+          createWeeklyCostChart();
+        }, 100);
+        
+        // Box 3 - Water vs. Air with Environmental Score
+        boxes[2].innerHTML = `
+          <div style="display: flex; flex-direction: column; width: 100%; height: 100%;">
+            <strong style="font-size: 0.9em; margin-bottom: 5px; text-align: center;">Water vs. Air</strong>
+            <div style="width: 100%; height: 115px; display: flex; justify-content: center; align-items: center;">
+              <canvas id="transportModeChart"></canvas>
+            </div>
+            
+            <div style="height: 1px; background-color: #e0e0e0; margin: 4px auto; width: 80%;"></div>
+            
+            <div style="display: flex; align-items: center; justify-content: center; margin-top: 0px;">
+              <div style="display: flex; align-items: center; width: 100%;">
+                <div style="margin-right: 8px; display: flex; align-items: center; justify-content: center; background-color: #e8f5e9; width: 24px; height: 24px; border-radius: 50%;">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#2e7d32" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M6 3v7a6 6 0 0 0 6 6 6 6 0 0 0 6-6V3"></path>
+                    <line x1="4" y1="21" x2="20" y2="21"></line>
+                    <line x1="12" y1="12" x2="12" y2="21"></line>
+                  </svg>
+                </div>
+                <div style="display: flex; justify-content: space-between; align-items: center; width: calc(100% - 32px);">
+                  <span style="font-size: 0.8em; font-weight: 600; color: #333; white-space: nowrap;">Environmental Score</span>
+                  <span style="font-size: 1.1em; font-weight: 700; color: #2e7d32;">${calculateEnvironmentalScore(parsedData)}%</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        `;
+        
+        // Create transport mode chart
+        setTimeout(() => {
+          createTransportModeChart();
+        }, 100);
+        
+        // Box 4 - Revenue at Risk
+        boxes[3].innerHTML = `
+          <strong style="display: block; font-size: 0.9em; margin-bottom: 5px;">Revenue at Risk</strong>
+          <span style="font-size: 1.4em; color: #2e7d32">$0</span>
+          <span style="display: block; font-size: 0.8em; margin-top: 5px;">Based on container shortfall</span>
+        `;
+        
+        // Default Box 5
+        const box5 = document.querySelector('.side-box .metric-content');
+        if (box5) {
+          box5.innerHTML = `
+            <div style="text-align: left;">
+              <h3 style="margin-top: 0; color: #007db8;">News</h3>
+              
+              <div style="border-bottom: 1px solid #e0e0e0; padding-bottom: 10px; margin-bottom: 10px;">
+                <p style="font-weight: 600; margin-bottom: 2px; font-size: 13px;">Labor Disputes at LA Ports expected end...</p>
+                <p style="color: #666; margin-top: 0; font-size: 11px;">3 hours ago</p>
+              </div>
+              
+              <div style="border-bottom: 1px solid #e0e0e0; padding-bottom: 10px; margin-bottom: 10px;">
+                <p style="font-weight: 600; margin-bottom: 2px; font-size: 13px;">Hot Weather at Savannah port causes...</p>
+                <p style="color: #666; margin-top: 0; font-size: 11px;">7 hours ago</p>
+              </div>
+              
+              <div>
+                <p style="font-weight: 600; margin-bottom: 2px; font-size: 13px;">July 4th historically brings in more traffic, effecting...</p>
+                <p style="color: #666; margin-top: 0; font-size: 11px;">2 days ago</p>
+              </div>
+            </div>
+          `;
+        }
+      }
+    }
+
+    function getPortCapacity(portName) {
+      // Return capacity based on port name
+      const capacities = {
+        'Houston': 47,
+        'Savannah': 50,
+        'Prince Rupert': 35,
+        'China': 'N/A'
+      };
+      return capacities[portName] || 'Unknown';
+    }
+    
+    function getPortCongestion(portName) {
+      // Return congestion levels based on port name
+      const congestion = {
+        'Houston': 'Medium (65%)',
+        'Savannah': 'Low (42%)',
+        'Prince Rupert': 'Low (38%)',
+        'China': 'High (78%)'
+      };
+      return congestion[portName] || 'Unknown';
+    }
+    
+    function createPortPopup(target, portName, capacity, congestion) {
+      // Remove any existing popups
+      const existingPopup = document.querySelector('.custom-port-popup, .custom-site-popup, .custom-center-popup');
+      if (existingPopup) {
+        existingPopup.remove();
+      }
+      
+      // Create popup element
+      const popup = document.createElement('div');
+      popup.className = 'custom-port-popup';
+      popup.style.cssText = `
+        position: absolute;
+        background: white;
+        border-radius: 8px;
+        padding: 15px;
+        width: 200px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+        z-index: 1000;
+        font-size: 13px;
+        font-family: 'Segoe UI', Arial, sans-serif;
+      `;
+      
+      // Create popup content
+      popup.innerHTML = `
+        <div style="position: relative;">
+          <div style="position: absolute; top: -8px; right: -8px; width: 18px; height: 18px; background: #f0f0f0; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: bold; box-shadow: 0 1px 3px rgba(0,0,0,0.2);">×</div>
+          <h3 style="margin-top: 0; margin-bottom: 10px; color: #0066cc; font-size: 16px;">${portName} Port</h3>
+          <div style="margin-bottom: 8px;">
+            <strong>Capacity:</strong> ${capacity} containers/week
+          </div>
+          <div style="margin-bottom: 8px;">
+            <strong>Congestion:</strong> ${congestion}
+          </div>
+          ${congestion.includes('N/A') ? '' : `
+            <div style="height: 6px; background: #f0f0f0; border-radius: 3px; overflow: hidden; margin-top: 12px;">
+              <div style="height: 100%; background: ${congestion.includes('Low') ? '#4caf50' : congestion.includes('Medium') ? '#ff9800' : '#f44336'}; width: ${congestion.match(/\d+/)[0]}%;"></div>
+            </div>
+          `}
+        </div>
+      `;
+      
+      // Position the popup next to the marker
+      document.body.appendChild(popup);
+      
+      // Get marker position on screen
+      const markerPosition = target._icon.getBoundingClientRect();
+      
+      // Position popup to the right of the marker
+      popup.style.left = `${markerPosition.right + 10}px`;
+      popup.style.top = `${markerPosition.top - 20}px`;
+      
+      // Add close button event listener
+      const closeButton = popup.querySelector('div[style*="border-radius: 50%"]');
+      if (closeButton) {
+        closeButton.addEventListener('click', function() {
+          popup.remove();
+        });
+      }
+      
+      // Add click outside listener
+      setTimeout(() => {
+        document.addEventListener('click', function closePopup(e) {
+          if (!popup.contains(e.target) && !target._icon.contains(e.target)) {
+            popup.remove();
+            document.removeEventListener('click', closePopup);
+          }
+        });
+      }, 100);
+    }
+
+    function calculateEnvironmentalScore(data) {
+      // Calculate environmental score based on the ratio of water vs air transportation
+      // Higher water percentage = better environmental score
+      
+      let waterContainers = 0;
+      let airContainers = 0;
+      let totalContainers = 0;
+      
+      if (data && data.weeklyData) {
+        // Directly access the weekData object to sum up all weeks
+        for (let week = 1; week <= 8; week++) {
+          if (data.weeklyData[week]) {
+            // Air allocation
+            airContainers += parseInt(data.weeklyData[week].alloc_air) || 0;
+            
+            // Water allocations (sum of all other ports)
+            waterContainers += (parseInt(data.weeklyData[week].alloc_prince) || 0) +
+                             (parseInt(data.weeklyData[week].alloc_houston) || 0) +
+                             (parseInt(data.weeklyData[week].alloc_savannah) || 0);
+          }
+        }
+        
+        totalContainers = waterContainers + airContainers;
+      } else {
+        // Sample data if no real data is available
+        waterContainers = 350;
+        airContainers = 50;
+        totalContainers = waterContainers + airContainers;
+      }
+      
+      // Calculate score: 100% water = 100 score, 100% air = 30 score (air is less environmentally friendly)
+      // Linear scale between these points
+      if (totalContainers === 0) return 80; // Default score for no containers
+      
+      const waterPercentage = waterContainers / totalContainers;
+      const airPercentage = airContainers / totalContainers;
+      
+      // Score formula: water contribution (max 100) + air contribution (max 30)
+      const score = Math.round((waterPercentage * 100) + (airPercentage * 30));
+      
+      return Math.min(100, Math.max(30, score)); // Constrain between 30-100
+    }
+
+    function createTransportModeChart(data) {
+      // Get the canvas element
+      const ctx = document.getElementById('transportModeChart').getContext('2d');
+      
+      let waterValue = 0;
+      let airValue = 0;
+      
+      if (data && data.weeklyData) {
+        // Calculate totals from all 8 weeks
+        for (let week = 1; week <= 8; week++) {
+          if (data.weeklyData[week]) {
+            // Air allocation
+            airValue += parseInt(data.weeklyData[week].alloc_air) || 0;
+            
+            // Water allocations (sum of all other ports)
+            waterValue += (parseInt(data.weeklyData[week].alloc_prince) || 0) +
+                         (parseInt(data.weeklyData[week].alloc_houston) || 0) +
+                         (parseInt(data.weeklyData[week].alloc_savannah) || 0);
+          }
+        }
+      } else {
+        // Sample data if no real data is available
+        waterValue = 350;
+        airValue = 50;
+      }
+      
+      // Calculate percentages for labels
+      const total = waterValue + airValue;
+      const waterPercent = total > 0 ? Math.round((waterValue / total) * 100) : 0;
+      const airPercent = total > 0 ? Math.round((airValue / total) * 100) : 0;
+      
+      // Destroy previous chart instance if it exists
+      if (window.transportModeChartInstance) {
+        window.transportModeChartInstance.destroy();
+      }
+      
+      // Create the chart
+      window.transportModeChartInstance = new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+          labels: [`Water (${waterPercent}%)`, `Air (${airPercent}%)`],
+          datasets: [{
+            data: [waterValue, airValue],
+            backgroundColor: [
+              '#039BE5', // Light blue for water
+              '#757575'  // Grey for air (changed from blue)
+            ],
+            borderColor: [
+              '#ECEFF1',
+              '#ECEFF1'
+            ],
+            borderWidth: 2,
+            hoverOffset: 4,
+            cutout: '70%'
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: {
+              position: 'bottom',
+              labels: {
+                font: {
+                  size: 10
+                },
+                boxWidth: 12,
+                padding: 5
+              }
+            },
+            tooltip: {
+              callbacks: {
+                label: function(context) {
+                  const value = context.raw;
+                  const total = context.chart.data.datasets[0].data.reduce((sum, val) => sum + val, 0);
+                  const percent = Math.round((value / total) * 100);
+                  return `${context.label.split(' ')[0]}: ${value} containers (${percent}%)`;
+                }
+              }
+            }
+          }
+        }
+      });
+    }
+
+    function createWeeklyCostChart(data) {
+      // Get the canvas element
+      const ctx = document.getElementById('weeklyCostChart').getContext('2d');
+      
+      // Create sample data if no real data is available
+      let weeklyData = [];
+      let weekLabels = [];
+      
+      if (data && data.weeklyData && data.weeklyData.length > 0) {
+        // Use actual data
+        weeklyData = data.weeklyData.map(week => Math.round(week.totalCost/1000000));
+        weekLabels = data.weeklyData.map((_, index) => `Week ${index + 1}`);
+      } else {
+        // Use sample data
+        weeklyData = [5.2, 5.8, 6.3, 5.5, 6.0, 5.7, 6.1, 5.9];
+        weekLabels = ['Week 1', 'Week 2', 'Week 3', 'Week 4', 'Week 5', 'Week 6', 'Week 7', 'Week 8'];
+      }
+      
+      // Destroy previous chart if it exists
+      if (window.weeklyCostChartInstance) {
+        window.weeklyCostChartInstance.destroy();
+      }
+      
+      // Create the chart
+      window.weeklyCostChartInstance = new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: weekLabels,
+          datasets: [{
+            label: 'Cost (Millions $)',
+            data: weeklyData,
+            backgroundColor: '#1976D2',
+            borderColor: '#1565C0',
+            borderWidth: 1,
+            borderRadius: 4,
+            barThickness: 'flex',
+            maxBarThickness: 18
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: {
+              display: false
+            },
+            tooltip: {
+              callbacks: {
+                label: function(context) {
+                  return `$${context.raw}M`;
+                }
+              }
+            }
+          },
+          scales: {
+            x: {
+              grid: {
+                display: false
+              },
+              ticks: {
+                font: {
+                  size: 10
+                }
+              }
+            },
+            y: {
+              beginAtZero: true,
+              grid: {
+                color: '#f0f0f0'
+              },
+              ticks: {
+                font: {
+                  size: 10
+                },
+                callback: function(value) {
+                  return `$${value}M`;
+                }
+              }
+            }
+          }
+        }
+      });
+    }
+
+    // Helper function to get a detailed summary of all port allocation data
+    function getPortAllocationSummary() {
+      const savedData = localStorage.getItem('dellPortOptimizer');
+      if (!savedData) return "No allocation data available";
+      
+      try {
+        const data = JSON.parse(savedData);
+        if (!data.weeklyData) return "No weekly allocation data available";
+        
+        let summary = {
+          weeks: Object.keys(data.weeklyData).length,
+          totalContainers: data.summary?.totalContainers || 0,
+          totalCost: data.summary?.totalCost || 0,
+          avgLeadTime: data.summary?.avgLeadTime || 0,
+          weekByWeek: [], // Detailed weekly breakdown
+          portBreakdown: {
+            prince: 0,
+            houston: 0,
+            savannah: 0,
+            air: 0
+          }
+        };
+        
+        // Get weekly details
+        Object.entries(data.weeklyData).forEach(([week, weekData]) => {
+          summary.weekByWeek.push({
+            week: parseInt(week),
+            prince: parseInt(weekData.alloc_prince || 0),
+            houston: parseInt(weekData.alloc_houston || 0),
+            savannah: parseInt(weekData.alloc_savannah || 0),
+            air: parseInt(weekData.alloc_air || 0),
+            total: parseInt(weekData.alloc_prince || 0) + 
+                  parseInt(weekData.alloc_houston || 0) + 
+                  parseInt(weekData.alloc_savannah || 0) + 
+                  parseInt(weekData.alloc_air || 0)
+          });
+          
+          // Add to port totals
+          summary.portBreakdown.prince += parseInt(weekData.alloc_prince || 0);
+          summary.portBreakdown.houston += parseInt(weekData.alloc_houston || 0);
+          summary.portBreakdown.savannah += parseInt(weekData.alloc_savannah || 0);
+          summary.portBreakdown.air += parseInt(weekData.alloc_air || 0);
+        });
+        
+        // Sort weeks in order
+        summary.weekByWeek.sort((a, b) => a.week - b.week);
+        
+        return summary;
+      } catch (e) {
+        console.error('Error parsing allocation data:', e);
+        return "Error parsing allocation data";
+      }
+    }
+    
+    // Function to update AI prediction bubbles
+    function updateAIPredictions(predictions) {
+      if (!predictions || !predictions.length) return;
+      
+      const container = document.querySelector('.metric-box:nth-child(4) .metric-content');
+      if (!container) return;
+      
+      const predictionsContainer = container.querySelector('[style*="overflow-y: auto"]');
+      if (!predictionsContainer) return;
+      
+      // Clear existing predictions
+      predictionsContainer.innerHTML = '';
+      
+      // Add all predictions with newest on top
+      predictions.forEach(prediction => {
+        const bubble = document.createElement('div');
+        bubble.style.cssText = 'background-color: #f5f5f5; border-radius: 8px; padding: 8px 12px; margin-bottom: 8px;';
+        
+        // Format prediction to highlight numbers in blue bold
+        const formattedText = prediction.replace(/(\d+\.?\d*%?|\d+\.?\d*)/g, '<span style="color:#0066cc; font-weight:bold;">$1</span>');
+        
+        bubble.innerHTML = `<p style="margin: 0; font-size: 13px; line-height: 1.4; text-align: left;">${formattedText}</p>`;
+        predictionsContainer.appendChild(bubble);
+      });
+    }
+    
+    // Set up the AI Predictions functionality
+    function setupAIPredictions() {
+      const input = document.getElementById('ai-question-input');
+      const button = document.getElementById('ai-submit-button');
+      if (!input || !button) return;
+      
+      // Initial predictions
+      const initialPredictions = [
+        "Based on historical data expect a <span style='color:#0066cc; font-weight:bold;'>2.5%</span> increase in Houston congestion.",
+        "Front-load <span style='color:#0066cc; font-weight:bold;'>15</span> containers in Weeks <span style='color:#0066cc; font-weight:bold;'>1-2</span>"
+      ];
+      
+      // Make sure to properly find and update the predictions container
+      // Handle initial setup
+      const setupInitialPredictions = () => {
+        const container = document.querySelector('.metric-box:nth-child(4) .metric-content');
+        if (!container) return;
+        
+        const predictionsContainer = container.querySelector('[style*="overflow-y: auto"]');
+        if (!predictionsContainer) return;
+        
+        // Clear existing predictions
+        predictionsContainer.innerHTML = '';
+        
+        // Add initial predictions
+        initialPredictions.forEach(prediction => {
+          const bubble = document.createElement('div');
+          bubble.style.cssText = 'background-color: #f5f5f5; border-radius: 8px; padding: 8px 12px; margin-bottom: 8px;';
+          bubble.innerHTML = `<p style="margin: 0; font-size: 13px; line-height: 1.4; text-align: left;">${prediction}</p>`;
+          predictionsContainer.appendChild(bubble);
+        });
+      };
+      
+      // Call the initial setup
+      setupInitialPredictions();
+      
+      // Track ALL predictions for the session (not just the latest two)
+      const predictions = [...initialPredictions];
+      
+      // Function to update predictions with new content
+      const updatePredictions = (newPredictions) => {
+        if (!newPredictions || !newPredictions.length) return;
+        
+        const container = document.querySelector('.metric-box:nth-child(4) .metric-content');
+        if (!container) return;
+        
+        const predictionsContainer = container.querySelector('[style*="overflow-y: auto"]');
+        if (!predictionsContainer) {
+          console.error("Could not find predictions container");
+          return;
+        }
+        
+        // Clear existing predictions
+        predictionsContainer.innerHTML = '';
+        
+        // Add all predictions
+        newPredictions.forEach(prediction => {
+          const bubble = document.createElement('div');
+          bubble.style.cssText = 'background-color: #f5f5f5; border-radius: 8px; padding: 8px 12px; margin-bottom: 8px;';
+          bubble.innerHTML = `<p style="margin: 0; font-size: 13px; line-height: 1.4; text-align: left;">${prediction}</p>`;
+          predictionsContainer.appendChild(bubble);
+        });
+      };
+      
+      // Handle button click
+      button.addEventListener('click', async () => {
+        if (!input.value.trim()) return;
+        
+        // Indicate loading state
+        button.style.backgroundColor = '#cccccc';
+        button.disabled = true;
+        
+        try {
+          // Get detailed port allocation summary data
+          const allocationData = getPortAllocationSummary();
+          console.log("Using allocation data for prediction:", allocationData);
+          
+          // Parse the user query to identify key entities and intent
+          const query = input.value.toLowerCase();
+          
+          // Extract specific week or port information
+          const weekMatch = query.match(/week\s*(\d+)/i);
+          const specificWeek = weekMatch ? parseInt(weekMatch[1]) : null;
+          
+          const ports = {
+            prince: ["prince", "rupert", "prince rupert", "pr port"],
+            houston: ["houston", "gulf", "texas", "houston port"],
+            savannah: ["savannah", "east coast", "georgia", "savannah port"],
+            air: ["air", "air freight", "plane", "flight", "air shipping"]
+          };
+          
+          // Determine which port is being asked about
+          let targetPort = null;
+          for (const [port, terms] of Object.entries(ports)) {
+            if (terms.some(term => query.includes(term))) {
+              targetPort = port;
+              break;
+            }
+          }
+          
+          // Determine intent category
+          const intentCategories = {
+            cost: ["cost", "budget", "spend", "money", "expense", "price", "financial"],
+            leadTime: ["lead time", "transit", "delivery", "delay", "time", "duration", "days", "ship time"],
+            risk: ["risk", "congestion", "diversification", "contingency", "safety", "reliability"],
+            allocation: ["allocation", "containers", "volume", "capacity", "assign", "distribute"],
+            reduction: ["reduce", "decrease", "cut", "lower", "minimize", "save"],
+            increase: ["increase", "grow", "add", "more", "maximize", "boost"]
+          };
+          
+          let primaryIntent = null;
+          for (const [intent, terms] of Object.entries(intentCategories)) {
+            if (terms.some(term => query.includes(term))) {
+              primaryIntent = intent;
+              break;
+            }
+          }
+          
+          // Simulate a short delay for the API call
+          await new Promise(resolve => setTimeout(resolve, 800));
+          
+          // Generate a data-driven prediction based on the user's query
+          let prediction = "";
+          
+          // Calculate data-driven metrics for use in predictions
+          const data = allocationData;
+          
+          // If no data is available, use reasonable defaults
+          if (typeof data === "string" || !data.weekByWeek || data.weekByWeek.length === 0) {
+            prediction = "Insufficient data. Upload allocation plan first.";
+          } else {
+            // Calculate specific metrics from the actual data
+            const totalAir = data.portBreakdown.air;
+            const totalWater = data.portBreakdown.prince + data.portBreakdown.houston + data.portBreakdown.savannah;
+            const totalContainers = totalAir + totalWater;
+            
+            // Port-specific metrics - capitalize port names
+            const princeTotalAlloc = data.portBreakdown.prince;
+            const princePercent = Math.round((princeTotalAlloc / totalContainers) * 100);
+            
+            const houstonTotalAlloc = data.portBreakdown.houston;
+            const houstonPercent = Math.round((houstonTotalAlloc / totalContainers) * 100);
+            
+            const savannahTotalAlloc = data.portBreakdown.savannah;
+            const savannahPercent = Math.round((savannahTotalAlloc / totalContainers) * 100);
+            
+            const airPercent = Math.round((totalAir / totalContainers) * 100);
+
+            // Helper function to capitalize first letter
+            const capitalize = (str) => {
+              return str.charAt(0).toUpperCase() + str.slice(1);
+            };
+            
+            // Helper function to format port names
+            const formatPort = (port) => {
+              if (port === 'prince') return 'Prince Rupert';
+              if (port === 'houston') return 'Houston';
+              if (port === 'savannah') return 'Savannah';
+              if (port === 'air') return 'Air Freight';
+              return capitalize(port);
+            };
+            
+            // Cost calculations
+            const airCost = totalAir * 25000; // $25K per air container
+            const princeCost = princeTotalAlloc * 10000; // $10K per Prince container
+            const houstonCost = houstonTotalAlloc * 10000; // $10K per Houston container
+            const savannahCost = savannahTotalAlloc * 10000; // $10K per Savannah container
+            const totalCost = airCost + princeCost + houstonCost + savannahCost;
+            
+            const princeCostPercent = Math.round((princeCost / totalCost) * 100);
+            const houstonCostPercent = Math.round((houstonCost / totalCost) * 100);
+            const savannahCostPercent = Math.round((savannahCost / totalCost) * 100);
+            const airCostPercent = Math.round((airCost / totalCost) * 100);
+            
+            // Week-specific data
+            let weekData = null;
+            if (specificWeek !== null && specificWeek >= 1 && specificWeek <= 8) {
+              weekData = data.weekByWeek.find(w => w.week === specificWeek);
+            }
+            
+            // Now construct a highly relevant response based on the specific port and intent
+            if (targetPort && specificWeek) {
+              // Questions about specific port AND specific week
+              if (weekData) {
+                const weeklyPortAllocation = weekData[targetPort];
+                const weeklyPortPercent = Math.round((weeklyPortAllocation / weekData.total) * 100);
+                
+                if (primaryIntent === 'cost') {
+                  const portCostMap = {
+                    prince: 10000,
+                    houston: 10000,
+                    savannah: 10000,
+                    air: 25000
+                  };
+                  const weeklyPortCost = weeklyPortAllocation * portCostMap[targetPort];
+                  prediction = `Week <span style='color:#0066cc; font-weight:bold;'>${specificWeek}</span>: ${formatPort(targetPort)} costs $<span style='color:#0066cc; font-weight:bold;'>${weeklyPortCost.toLocaleString()}</span> (<span style='color:#0066cc; font-weight:bold;'>${weeklyPortAllocation}</span> containers).`;
+                } else if (primaryIntent === 'reduction') {
+                  prediction = `Reduce ${formatPort(targetPort)} by <span style='color:#0066cc; font-weight:bold;'>${Math.max(1, Math.round(weeklyPortAllocation * 0.15))}</span> containers in Week <span style='color:#0066cc; font-weight:bold;'>${specificWeek}</span>.`;
+                } else {
+                  prediction = `Week <span style='color:#0066cc; font-weight:bold;'>${specificWeek}</span>: ${formatPort(targetPort)} has <span style='color:#0066cc; font-weight:bold;'>${weeklyPortAllocation}</span> containers (<span style='color:#0066cc; font-weight:bold;'>${weeklyPortPercent}%</span> of week).`;
+                }
+              } else {
+                prediction = `No data available for Week <span style='color:#0066cc; font-weight:bold;'>${specificWeek}</span>.`;
+              }
+            } else if (targetPort) {
+              // Questions about specific port only
+              const portMap = {
+                prince: {
+                  total: princeTotalAlloc,
+                  percent: princePercent,
+                  costPercent: princeCostPercent,
+                  costTotal: princeCost,
+                  leadTime: 45
+                },
+                houston: {
+                  total: houstonTotalAlloc,
+                  percent: houstonPercent,
+                  costPercent: houstonCostPercent,
+                  costTotal: houstonCost,
+                  leadTime: 49
+                },
+                savannah: {
+                  total: savannahTotalAlloc,
+                  percent: savannahPercent,
+                  costPercent: savannahCostPercent,
+                  costTotal: savannahCost,
+                  leadTime: 56
+                },
+                air: {
+                  total: totalAir,
+                  percent: airPercent,
+                  costPercent: airCostPercent,
+                  costTotal: airCost,
+                  leadTime: 7
+                }
+              };
+              
+              // Get port-specific information
+              const portInfo = portMap[targetPort];
+              
+              // Find peak week for this port
+              const peakWeek = [...data.weekByWeek].sort((a, b) => b[targetPort] - a[targetPort])[0];
+              const peakPortValue = peakWeek[targetPort];
+              
+              if (primaryIntent === 'cost') {
+                prediction = `${formatPort(targetPort)} costs: $<span style='color:#0066cc; font-weight:bold;'>${Math.round(portInfo.costTotal/1000).toLocaleString()}K</span> (<span style='color:#0066cc; font-weight:bold;'>${portInfo.costPercent}%</span> of total budget).`;
+              } else if (primaryIntent === 'leadTime') {
+                prediction = `${formatPort(targetPort)} lead time: <span style='color:#0066cc; font-weight:bold;'>${portInfo.leadTime}</span> days per container.`;
+              } else if (primaryIntent === 'reduction') {
+                prediction = `Reduce ${formatPort(targetPort)} by <span style='color:#0066cc; font-weight:bold;'>${Math.max(1, Math.round(portInfo.total * 0.1))}</span> containers to save $<span style='color:#0066cc; font-weight:bold;'>${Math.round((targetPort === 'air' ? 25000 : 10000) * Math.max(1, Math.round(portInfo.total * 0.1))/1000)}K</span>.`;
+              } else {
+                prediction = `${formatPort(targetPort)}: <span style='color:#0066cc; font-weight:bold;'>${portInfo.total}</span> containers (<span style='color:#0066cc; font-weight:bold;'>${portInfo.percent}%</span> of total allocation).`;
+              }
+            } else if (specificWeek) {
+              // Questions about specific week only
+              if (weekData) {
+                const weeklyTotal = weekData.total;
+                const weeklyPrincePercent = Math.round((weekData.prince / weeklyTotal) * 100);
+                const weeklyHoustonPercent = Math.round((weekData.houston / weeklyTotal) * 100);
+                const weeklySavannahPercent = Math.round((weekData.savannah / weeklyTotal) * 100);
+                const weeklyAirPercent = Math.round((weekData.air / weeklyTotal) * 100);
+                
+                const weekCost = (weekData.prince + weekData.houston + weekData.savannah) * 10000 + weekData.air * 25000;
+                
+                if (primaryIntent === 'cost') {
+                  prediction = `Week <span style='color:#0066cc; font-weight:bold;'>${specificWeek}</span> cost: $<span style='color:#0066cc; font-weight:bold;'>${Math.round(weekCost/1000).toLocaleString()}K</span> for <span style='color:#0066cc; font-weight:bold;'>${weeklyTotal}</span> containers.`;
+                } else if (primaryIntent === 'reduction' || query.includes('optimize')) {
+                  // Find most expensive allocation that week for cost reduction
+                  let highestCostPort = 'air';
+                  if (weekData.air < 1) {
+                    const waterPorts = ['prince', 'houston', 'savannah'];
+                    highestCostPort = waterPorts.sort((a, b) => weekData[b] - weekData[a])[0];
+                  }
+                  
+                  // More specific optimization recommendation
+                  if (weekData.air > 0) {
+                    prediction = `Week <span style='color:#0066cc; font-weight:bold;'>${specificWeek}</span>: Reduce ${formatPort('air')} by <span style='color:#0066cc; font-weight:bold;'>${Math.max(1, Math.round(weekData.air * 0.3))}</span> containers to save $<span style='color:#0066cc; font-weight:bold;'>${Math.max(1, Math.round(weekData.air * 0.3)) * 25}</span>K.`;
+                  } else {
+                    prediction = `Week <span style='color:#0066cc; font-weight:bold;'>${specificWeek}</span>: Move <span style='color:#0066cc; font-weight:bold;'>2</span> containers from ${formatPort(highestCostPort)} to ${formatPort('savannah')} to balance allocation.`;
+                  }
+                } else {
+                  prediction = `Week <span style='color:#0066cc; font-weight:bold;'>${specificWeek}</span>: <span style='color:#0066cc; font-weight:bold;'>${weeklyTotal}</span> containers (<span style='color:#0066cc; font-weight:bold;'>${weekData.prince}</span> Prince Rupert, <span style='color:#0066cc; font-weight:bold;'>${weekData.houston}</span> Houston, <span style='color:#0066cc; font-weight:bold;'>${weekData.savannah}</span> Savannah, <span style='color:#0066cc; font-weight:bold;'>${weekData.air}</span> Air Freight).`;
+                }
+              } else {
+                prediction = `No data available for Week <span style='color:#0066cc; font-weight:bold;'>${specificWeek}</span>.`;
+              }
+            } else {
+              // General questions - handle by intent
+              if (primaryIntent === 'cost') {
+                prediction = `Total cost: $<span style='color:#0066cc; font-weight:bold;'>${Math.round(totalCost/1000).toLocaleString()}K</span> across <span style='color:#0066cc; font-weight:bold;'>${totalContainers}</span> containers in <span style='color:#0066cc; font-weight:bold;'>8</span> weeks.`;
+              } else if (primaryIntent === 'leadTime') {
+                const avgLeadTime = Math.round(
+                  (7 * totalAir + 
+                   45 * princeTotalAlloc + 
+                   49 * houstonTotalAlloc + 
+                   56 * savannahTotalAlloc) / totalContainers
+                );
+                prediction = `Average lead time: <span style='color:#0066cc; font-weight:bold;'>${avgLeadTime}</span> days across all containers.`;
+              } else if (primaryIntent === 'reduction' || query.includes('optimize') || query.includes('minimize')) {
+                // More specific optimization recommendation
+                if (query.includes('time') || query.includes('delay') || query.includes('transit')) {
+                  prediction = `Shift <span style='color:#0066cc; font-weight:bold;'>${Math.max(2, Math.round(savannahTotalAlloc * 0.2))}</span> containers from Savannah to Prince Rupert to save <span style='color:#0066cc; font-weight:bold;'>11</span> days per container.`;
+                } else {
+                  prediction = `Replace <span style='color:#0066cc; font-weight:bold;'>${Math.max(2, Math.round(totalAir * 0.2))}</span> Air Freight containers with water shipping to save $<span style='color:#0066cc; font-weight:bold;'>${Math.max(2, Math.round(totalAir * 0.2)) * 15}</span>K.`;
+                }
+              } else if (query.includes("highest air") || query.includes("most air")) {
+                // Find week with highest air freight
+                const peakAirWeek = [...data.weekByWeek].sort((a, b) => b.air - a.air)[0];
+                prediction = `Week <span style='color:#0066cc; font-weight:bold;'>${peakAirWeek.week}</span> has highest Air Freight: <span style='color:#0066cc; font-weight:bold;'>${peakAirWeek.air}</span> containers (<span style='color:#0066cc; font-weight:bold;'>${Math.round((peakAirWeek.air / peakAirWeek.total) * 100)}%</span> of week).`;
+              } else if (query.includes("compare")) {
+                // Extract ports to compare
+                let port1 = null;
+                let port2 = null;
+                
+                for (const [port, terms] of Object.entries(ports)) {
+                  if (terms.some(term => query.includes(term))) {
+                    if (!port1) port1 = port;
+                    else if (!port2) port2 = port;
+                    if (port1 && port2) break;
+                  }
+                }
+                
+                if (port1 && port2) {
+                  const port1Info = {
+                    name: formatPort(port1),
+                    total: data.portBreakdown[port1],
+                    percent: Math.round((data.portBreakdown[port1] / totalContainers) * 100),
+                    cost: port1 === 'air' ? data.portBreakdown[port1] * 25000 : data.portBreakdown[port1] * 10000,
+                    leadTime: port1 === 'air' ? 7 : (port1 === 'prince' ? 45 : (port1 === 'houston' ? 49 : 56))
+                  };
+                  
+                  const port2Info = {
+                    name: formatPort(port2),
+                    total: data.portBreakdown[port2],
+                    percent: Math.round((data.portBreakdown[port2] / totalContainers) * 100),
+                    cost: port2 === 'air' ? data.portBreakdown[port2] * 25000 : data.portBreakdown[port2] * 10000,
+                    leadTime: port2 === 'air' ? 7 : (port2 === 'prince' ? 45 : (port2 === 'houston' ? 49 : 56))
+                  };
+                  
+                  if (query.includes("cost")) {
+                    prediction = `${port1Info.name}: $<span style='color:#0066cc; font-weight:bold;'>${Math.round(port1Info.cost/1000)}K</span> vs ${port2Info.name}: $<span style='color:#0066cc; font-weight:bold;'>${Math.round(port2Info.cost/1000)}K</span>.`;
+                  } else if (query.includes("time") || query.includes("lead") || query.includes("transit")) {
+                    prediction = `${port1Info.name}: <span style='color:#0066cc; font-weight:bold;'>${port1Info.leadTime}</span> days vs ${port2Info.name}: <span style='color:#0066cc; font-weight:bold;'>${port2Info.leadTime}</span> days.`;
+                  } else {
+                    prediction = `${port1Info.name}: <span style='color:#0066cc; font-weight:bold;'>${port1Info.total}</span> containers vs ${port2Info.name}: <span style='color:#0066cc; font-weight:bold;'>${port2Info.total}</span> containers.`;
+                  }
+                } else {
+                  // Default comparison
+                  prediction = `Houston vs Prince Rupert: <span style='color:#0066cc; font-weight:bold;'>${houstonTotalAlloc}</span> vs <span style='color:#0066cc; font-weight:bold;'>${princeTotalAlloc}</span> containers.`;
+                }
+              } else {
+                // Total allocation breakdown
+                prediction = `Total allocation: <span style='color:#0066cc; font-weight:bold;'>${totalContainers}</span> containers (<span style='color:#0066cc; font-weight:bold;'>${princeTotalAlloc}</span> Prince Rupert, <span style='color:#0066cc; font-weight:bold;'>${houstonTotalAlloc}</span> Houston, <span style='color:#0066cc; font-weight:bold;'>${savannahTotalAlloc}</span> Savannah, <span style='color:#0066cc; font-weight:bold;'>${totalAir}</span> Air Freight).`;
+              }
+            }
+          }
+          
+          console.log("Generated prediction:", prediction);
+          
+          if (prediction) {
+            // Add to predictions at the top and update UI, keeping all previous ones
+            predictions.unshift(prediction);
+            updatePredictions(predictions);
+            
+            // Clear input field
+            input.value = '';
+          }
+        } catch (error) {
+          console.error('Error with AI prediction:', error);
+          alert("Something went wrong with the AI prediction. Please try again.");
+        } finally {
+          // Reset button state
+          button.style.backgroundColor = '#0066cc';
+          button.disabled = false;
+        }
+      });
+      
+      // Allow pressing Enter in the input field
+      input.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter' && !button.disabled) {
+          button.click();
+        }
+      });
+    }
+    
+    // Make sure we're calling setupAIPredictions at the appropriate time
+    document.addEventListener('DOMContentLoaded', () => {
+      console.log("Setting up AI predictions");
+      setTimeout(setupAIPredictions, 500); // Slight delay to ensure DOM is ready
+    });
+  </script>
+  </body>
+</html>
